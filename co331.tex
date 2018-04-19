@@ -1,0 +1,1642 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{verbatim}
+
+\newtheorem{thm}{Theorem}
+\newtheorem{defn}{Definition}
+\newtheorem{eg}{Example}
+\newtheorem{cor}{Corollory}
+
+\newcommand{\floor}[1]{\lfloor #1 \rfloor}
+\newcommand{\ceiling}[1]{\lceil #1 \rceil}
+
+\setlength{\parindent}{0em}
+
+\begin{document}
+Decoding strategies:
+
+IMLD decodes $r\in A^n$ to the neareest neighbour; i.e. it finds
+$c\in C$ which maximizes $d(c, r)$. equivalently, IMLD maximizes
+$P(r \text{is received} | c \text{is sent})$. It makes more sense
+to use Minimum Error Decoding which decodes to $c\in C$ that maximizes
+$P(c \text{is sent} | r \text{is received})$
+
+\begin{eg}
+   Suppose I'm sending letter over a channel to convey English words. Then
+    not all symbols are equally likely to be sent
+\end{eg}
+
+Consider $c = \{c_1 = 000, c_2 = 111\}$. Let $P(c_i)$ denote the probability
+that $c_i$ is being sent, and $P(c_1) = 0.1$ and $P(c_2) = 0.9$.
+Using a BSC, with $p = \frac{1}{4}$, suppose $r=100$ is received.
+
+\begin{enumerate}
+    \item Using IMLD, we decode to nearest neighbour $c_1 = 000$
+    \item Using MED, we
+        \begin{align*}
+            P(c_1| r) &= P(r|c_1)P(c_1)/P(r)\\
+            &= 0.25*0.75*0.75 0.1/P(r) = 9/640 * 1/P(r)\\
+            P(c_2| r) &= P(r|c_2)P(c_2)/P(r)\\
+            &= 0.75*0.25*0.25 0.9/P(r) = 27/640 * 1/P(r)\\
+        \end{align*}
+\end{enumerate}
+
+Note: In practice, MLD is used. We will mostly focus on IMLD or CMLD.
+Also, in practice MLD and MED often coincide.
+
+Next topic: Linear code.
+We will use linear algebra to design codes. Instead of using scalar
+$\mathbb{R}$, we will use scalars from a finite field.
+
+\subsection{Finite Field}
+A field $(F, +, *)$ consists of a set $F$, an addition operation,
+$+: F\times F\rightarrow F$ and a multiplication operation: $F\times F\rightarrow F$.
+Not a trivial ring.
+
+\begin{defn}
+    A finite field is a field $\mathbb{F}$ which has many elements.
+\end{defn}
+
+\begin{eg}
+    \mathbb{Z}_p, we only need to show that $p\not\mid a$, then $a$ has a multiplicative
+    inverse modulo $p$.
+\end{eg}
+
+Recall: Bezout's lemma says that given $a,b\in\mathbb{Z}, \exists x,y\in\mathbb{Z}$
+such that $ax + by = gcd(a,b)$.
+
+By Bezout lemma, $\exists x,y$ such that $ax + py = 1$ since $gcd(a, p) = 1$. So
+reducing modulo $p$, we get $[a][x] = [1]$, so $[x] = [a]^{-1}$.
+
+Note: This can be made effective using the extended Euclidean Algorithm.
+
+TODO: Review EEA, etc. from MATH 135.
+
+Exercise: If $n$ is not prime, show that $\mathbb{Z}_n$ is not a field. If $m$ is a
+proper divisor of $n, 1 < m < n$, then $[m]$ has no inverse in $\mathbb{Z}_n$
+
+Why is $\mathbb{Z}_5[i]$ not a field?
+
+We note that -1 already has a square root: $2^2 = -1$ in $\mathbb{Z}_5$, and thus
+$(2+i)(2-i) = 0$ but these elements $2+i, 2-i$ are non-zero, they be invertible.
+This gives a contradiction that $2+i = 0$.
+
+\begin{defn}
+    The order of a field $\mathbb{F}$ is the number of elemnts of that fields.
+\end{defn}
+
+e.g. $\mathbb{Z}_5$ is a field of order 5, $\mathbb{Z}_7[i]$ is a field of order
+49.
+
+Question: We can see that there is a finite field of order $g$ for any prime $p$, namely
+$\mathbb{Z}_p$. What about fields with $n$ elements where $n$ is composite?
+
+\subsection{Characteristic of a finite field}
+Suppose $\mathbb{F}$ is any finite field, and consider the sequence,
+$1, 1+1, 1+1+1,...$  where 1 is the multiplicative identity. We will notate these
+as if they where integers.
+
+We remark that since these all elements of the finite set $\mathbb{F}$, there must
+be eventually be a repetition $m=n$ for some integer $0\leq m < n$. Then note that
+we can substract $m$ from each side to get $0 = n - m$, $0 = 1+1+1+...$
+
+So now we've established that there is some positive integer $K$  such that $K = 0$ in
+$\mathbb{F}$.
+
+\begin{defn}
+    Let $\mathbb{F}$ be any field. The characteristic of $\mathbb{F}$  is the smallest
+    integer with $k\in\mathbb{Z}_{> 0}$ such that $k=0$ in $\mathbb{F}$ in $\mathbb{F}$.
+    This $k$ is denoted $char(F)$.
+\end{defn}
+
+\begin{eg}
+   $\mathbb{Z}_7[i]$ has characteristic 7.If there is no characteristic, we say
+    $char(\mathbb{F}) = 0$
+\end{eg}
+
+\begin{thm}
+    The characteristic of any finite field is a prime number.
+\end{thm}
+
+\begin{proof}
+    Suppose that the characteristic was $m=ab$ for $a, m$.
+    The $ab = 0$ in $\mathbb{F}$. Note that $a\ne 0$, since $a<m$.,
+    $b = 0, b < m$.  Contradiction.
+\end{proof}
+
+$\mathbb{Z}_p$ inside of $\mathbb{F}$. Suppose $\mathbb{F}$ is a field of
+characteristic $p>0$. The nconsider the set $\mathbb{Z} = \{0,1,2,3,4, ..., p-1\} \subset{\mathbb{F}}$,
+A field inside of another field. It is isomorphic to $\mathbb{Z}_p$.
+
+\begin{thm}
+    If $\mathbb{F}$ has char. $p$, then $\mathbb{Z}_p$ is a subfield of $\mathbb{F}$.
+\end{thm}
+
+Fact: $\mathbb{F}$ is in fact a vector space over $\mathbb{Z}_p$.
+
+Finite field as vector spaces over $\mathbb{Z}_p$. Now that we know that
+$\mathbb{Z}_p$-vector space, let's use linear algebra to more about
+the structure of $\mathbb{F}$
+
+We start with a basis. $B = {b_1, ..., b_k}$ for $\mathbb{F}$ where
+$k = dim \mathbb{F}$ over $\mathbb{Z}_p$. By linear algebra, every element of
+$\mathbb{F}$ can be uniquely expressed as... (definition)
+
+\begin{thm}
+    If $\mathbb{F}$ is a finite field of char $p$, then $\mathbb{F} = p^k$, for
+    some $k\in\mathbb{Z}_{> 0}$. In other words, any finite field has an order of that
+    prime power.
+\end{thm}
+
+
+Does a field of order $p^n$ exists for any $p$ and $n$?
+
+Answer: The answer is yes! We will construct them using the theory of polynomial rings.
+
+\begin{eg}
+    Over $\mathbb{Z}_p$ we can construct a field of order 49 by adjoining a root of the
+    irreducible polynomial $x^+1 \in \mathbb{Z}_p[x]$. This gives $\mathbb{Z}_7[i]$, which
+    has order 49. Note: $x^2+1\in\mathbb{Z}_5[x]$. is not irreducible.
+\end{eg}
+
+\subsection{Polynomial Rings}
+Let $\mathbb{F}$ be a field. Then
+$\mathbb{F}[x] = \{a_0 + a_1x + a_2x^2 + ... + a_nx^n: a_0, ... a_n\in\mathbb{F},
+n\in\mathbb{Z}_{\geq 0}\}$. The polynomial over $\mathbb{F}$.
+We can add/subtract/multiply these as normal.
+
+\begin{eg}
+    $\mathbb{Z}_7[x]$ is the set of polynomial with coefficients in $\mathbb{Z}_7$.
+    \begin{align*}
+        (2+3x+4x^2)(3+x) &= 6 + 2x + 9x + 3x^2 + 12x^2 + 4x^3\\
+        &= 6 + 4x + x^2 + 4x^3
+    \end{align*}
+\end{eg}
+
+\begin{thm}[Division Algorithm]
+    For any $a(x), b(x)\in\mathbb{F}[x]$ with $b(x)\ne 0$, there exist unique
+    polynomial $q(x), r(x)$ such that
+    $a(x) = q(x)b(x) + r(x)$ and $deg r < deg b$, $r = 0$
+\end{thm}
+
+\begin{eg}
+    In $\mathbb{Z}_2[x]$, we can effectively find $q$ and $r$ using long division
+    If $a(x) = 1+x^2+x^3+x^5, b(x) = 1 + x^3$,
+\end{eg}
+
+Idea for constructing finite field
+\begin{enumerate}
+    \item For $\mathbb{Z}_p$: start by looking at $\mathbb{Z}$, then find
+        prime(or irreducible) $p\in\mathbb{Z}$ and construct
+        $\mathbb{Z}\setdiff p\mathbb{Z}$, which is the set of equivalence classes
+        of integers under relation $a\equiv b\bmod{p}$
+    \item Next, we look at $\mathbb{F}[x]$, and do a similar construction. So we find
+        an irreducible $f(x)\in\mathbb{F}[x]$ then consider the relation
+        $a(x)\equiv b(x)\bmod{f(x)}$, and let $\mathbb{F}[x]\bmod{f(x)}$ be
+        the set of equivalence classes. This will be a field!
+\end{enumerate}
+
+\begin{defn}
+    For $a(x), b(x)\in\mathbb{F}[x]$ with $b\ne 0$, we say $b(x)$ divides $a(x)$
+    or $b(x)\mid a(x)$ if the remainder of $a(x)\div b(x)$ is 0
+\end{defn}
+
+\begin{defn}
+    For $f(x)\in\mathbb{F}[x]\setdiff\{0\}$ and $g(x), h(x)\in\mathbb{F}[x]$, we say
+    "g(x) is congruent to $h(x)$ modulo $f(x)$" or $g(x)\mid g(x) - h(x)$.
+\end{defn}
+
+Fact: For a fixed $f(x)$, this relation is an equivalence relation. That means that is
+\begin{enumerate}
+    \item Reflexive: $g(x)\equiv g(x) \bmod{f(x)}$
+    \item Symmetric: $g(x)\equiv h(x) \bmod{f(x)}$ iff $h(x)\equiv g(x)\bmod{f(x)}$
+    \item Transitive
+\end{enumerate}
+
+\begin{thm}
+    Suppose $f(x)\in\mathbb{F}[x]$ has degree $n\geq 0$. Then
+    $R = \{a_0+ a_1x + ... + a_{n-1}x^{n-1}\}$ has properties that
+    \begin{enumerate}
+        \item Every element of $\mathbb{F}[x]$ is congruent to an element of $R$
+            modulo $f(x)$.
+        \item For every choice of $a_0,..., a_{n-1}$ get a distinct polynomial
+            $a_0 + a_1x + ... + a_{n-1}x^{n-1}$
+    \end{enumerate}
+\end{thm}
+
+Proof sketch: Follows from the division algorithm.
+
+\subsection{Polynomial Rings "quotiented" by $<f(x)>$}}
+Given $f(x)\in\mathbb{F}[x]$ with $deg f = n \geq 0$, we define $\mathbb{F}[x]\setdiff
+<f(x)>$ to be the set of equivalence classes of polynomial modulo $f(x)$.
+$F[x]\setdiff <f(x)> = \{[a_0 + ... + a_{n-1}x^{n-1}: a_0, ..., a_{n-1}\in\mathbb{F}\}$.
+
+Question: If $|\mathbb{F}| = q$, then what is $|\mathbb{F}[x]\setdiff <f(x)>$|?
+Answer: $q^n$,
+
+Lemma:$\mathbb{F}[x]\setdiff <f(x)>$ is a commutative ring.
+
+\begin{thm}[Freshman's dream]
+    In $\mathbb{Z}_p[x]$, $(a+b)^p \equiv a^p + b^p \bmod{p}$
+\end{thm}
+
+Is that ring a field?
+
+Yes! This is because $x^3+x+1$ is irreducible, as we will see.
+
+
+Find the inverse of $x^2 + 1\in\mathbb{Z}_2[x]\setddif <x^3+x+1>$
+Solution: We do a similar process to finding inverse in $\mathbb{Z}_n$ namely, we
+run the EEA.
+
+\begin{defn}
+    For $f(x)\in\mathbb{F}[x]$ of degree $\geq 1$, we say $f$ is irreducible if
+    whenever $f(x) = g(x)h(x)$ in $\mathbb{F}[x]$. We have either
+    $deg g = 0$ or $deg h = 0$
+\end{defn}
+
+\begin{eg}
+    Any $deg 1$ polynomial such that $2x+1\in\mathbb{Z}_7[x]$ is irreducible.
+\end{eg}
+
+\begin{eg}
+    Any degree 2 or 3 polynomial is irreducible iff it has no roots. So
+    $x^3 + x + 1\in\mathbb{Z}_2[x]$ is irreducible since $0^3 + 0 + 0 \ne 0$ and
+    $1^3 + 1 + 1 \ne 0$
+\end{eg}
+
+\begin{defn}
+    A polynomial $f(x)$ is monic if the leading coefficient is 1.
+\end{defn}
+
+\begin{eg}
+    $x^3 + x + 1\in\mathbb{Z}_2[x]$ is monic, $2x+1\in\mathbb{Z}_7[x]$ is not
+\end{eg}
+
+\begin{thm}
+    Any nonzero $f(x)\in\mathbb{F}[x]$ ca nbe uniquely factored as
+    $f(x) = cf_1(x)f_2(x)...f_k(x)$ where $c\in\mathbb{F}$, $f_i(x)$ is
+    monic irreducible, up to reordering of the terms.
+\end{thm}
+
+\begin{thm}
+    $\mathbb{F}[x]\setdiff<f(x)>$ is a field iff $f$ is irreducible.
+\end{thm}
+
+\begin{proof}
+    For any $f(x)\in\mathbb{F}[x]$, this construction gives a commutivative ring, so
+    we only need to check for existance of multiplicative inverse. So suppose
+    $g(x)\in\mathbb{F}[x]\setdiff<f(x)>$ is represented by $g(x)\in\mathbb{F}[x]$ with
+    $deg g < deg f$. Then the $gcd(f(x), g(x))$ (defined to be the largest degree monic
+    common divisor) must be 1, since $f(x)$ is irreducible. So when we run the EEA, we
+    obtain a solution for $a,b$ in $a(x)f(x) + b(x)g(x) = 1$. So in modulo $f(x) ,
+    b(x) = g(x)^{-1}$
+\end{proof}
+
+\begin{eg}
+    $f(x) = x^3 + 2x + 1\in\mathbb{Z}_3[x], g(x) = x^2 + 1$. Exercise check
+    that $f(x)$ is irreducible. Now find $g(x)^{-1}$.
+    \begin{align*}
+        (x^3+2x+ 1) = x(x^2+1) + (x+1)\\
+        (x^2 + 1) = (x+2)(x+1) + 2\\
+        2 = (x^2+1) - (x+2)(x+1)\\
+        = (x^2+1) - (x+2)((x^3+2x+ 1) - x(x^2+1))\\
+        2 = (x^2 + 2x+ 1)g(x) + (2x+1)f(x)\\
+        1 = (2x^2 + x  + 2)g(x) + (x+2)f(x)\\
+        g(x)^{-1} = 2x^2 + x + 2
+    \end{align*}
+\end{eg}
+
+If $f(x)\in\mathbb{Z}_p[x]$ is irreducible, then what is the order of $\mathbb{F} =
+\mathbb{Z}_p[x]\setdiff<f(x)>$
+
+Answer: In fact, if $deg f = n$, then $1,x,x^2,..x^{n-1}$ gives a basis for
+$\mathbb{F}$ as vector space over $\mathbb{Z}_p$, so $|\mathbb{F}| = p^n$
+
+Question: Given $p$ and $n$ is there $\mathbb{F}$ and $|\mathbb{F}| = p^n$
+
+Answer: Yes, in fact, there exists $f(x) \in\mathbb{Z}_p[x]$ which is irreducible
+of $deg n$, for any $n\geq 1$ so $\mathbb{F} = \mathbb{Z}_p[x]\setdiff<f(x)>$ works.
+In fact
+\begin{thm}
+    For any prime $p$ and $n\geq 1$, there is a unique field of oder $p^n$ up to
+    isomorphism.
+\end{thm}
+
+\begin{defn}
+    Given a finite field $\mathbb{F}$ of characteristic $p$, and order $p^n$, the
+    Forbenius map is the map $\pi:\mathbb{F}\rightarrow\mathbb{F}, x\mapsto x^{p^n}$
+\end{defn}
+
+This is a sort of "conjugation", and has anologis with complex conjugation.
+
+\begin{thm}
+    If $|\mathbb{F}| = p^n$, then every element of $\mathbb{F}$ is fixed by
+    Frobenius map so $x^{p^n} = x, \forall x\in\mathbb{F}$.
+\end{thm}
+
+Proof sketch: Exercise! Look up the proof of Fermat's theorem.
+
+\begin{eg}
+    In $\mathbb{Z}_p$, $x^p = x \forall x\in\mathbb{Z}_p$. This is FlT.
+\end{eg}
+
+\begin{eg}
+    In $\mathbb{F} = \mathbb{Z}_p[x]\setdiff<f(x)>$ with the $f$ monic irreducible of
+    $deg n$. we have $x^{p^n} = y \forall y\in\mathbb{F}$.
+\end{eg}
+
+Question: how do you check if $y\in\mathbb{Z}_p$?
+Answer: $y\in\mathbb{Z}_p \subset\mathbb{Z}$ iff $y^p = y$
+
+Why? We know that each $y\in\mathbb{Z}_p$ satisfies this. Futhermore, this gives
+$p$ roots of $y^p-y\in\mathbb{F}[y]$, and so that is in fact of all of them because
+a $deg p$ polynomial has at roots.
+
+\begin{thm}[Freshman's Dream]
+    In a field $\mathbb{F}$ of characteristic $p$, for $a,b\in\mathbb{F}$,
+    $(a+b)^p = a^p + b^p$.
+\end{thm}
+
+\begin{proof}
+    By the binomial theorem,
+    \begin{align*}
+        (a+b)^p = a^p + .... + b^p.
+    \end{align*{}
+    so for $1\leq k\leq p-1$, $(p k)$(binomial) $\equiv 0\bmod{p}$
+    Since $\mathbb{Z}_p$ the denominaotr is non-zero but numerator is 0.
+\end{proof}
+
+\subsection{Finite Fields Summarizd}
+A finite field of order $q$ exits iff $q$ is a prime power: $q = p^n$,
+$p$ prime, $n\geq 1$. In fact, there is is a unique field up to
+isomorphism and this denoted $\mathbb{F}_q$ or $GF(q)$.
+$\mathbb{F}_q$ with $q=p^n$ is constructed as $\mathbb{Z}[x]\setdiff <f(x)>$
+for $f\in\mathbb{Z}[x]$ irreducible of degree $n$.
+
+\subsection{Linear Code}
+Now we use finite fields to define code with structure. This will mean
+easier analysis and encoding/decoding.
+
+\begin{defn}
+    A linear $(n, k)$-code over $\mathbb{F}$ for $\mathbb{F}$ a finite
+    field is a vector subspace $S$ of $\mathbb{F}^n$ with $dim(S)=K$.
+    Note: we will think of $\mathbb{F}^n$ as consisting of row vectors.
+\end{defn}
+
+\begin{defn}
+    A subsapce $S$ of $\mathbb{F}^n$ is a non-empty subset such that
+    \begin{enumerate}
+        \item $\forall a,b\in S, a+b\in S$ (closure under $f$);
+        \item $\forall a\in S, \lambda a\in S$ (closure under scalar multiplication)
+    \end{enumerate}
+\end{defn}
+
+\begin{eg}
+    $C = \{000, 111\}$ is a linear $(3,1)$-code over $\mathbb{F}_2$. Check:
+    closed under +, and *. $(111)$ is a basis for that subspace.
+\end{eg}
+
+\begin{eg}
+    $C = \{010, 101\}$ is not a linear code. For many reasons... not closed under
+    + $010 + 101 = 111 \not\in C$, etc.
+\end{eg}
+
+How many codewords in $(n,k)$-code over $\mathbb{F}_q$?
+
+If $S\subset \mathbb{F}^n$ of dimension $k$, it has a basis
+$v_1, ..., v_k$ so
+$S = \{\lambda_1v_1 + \lambda_2v_2+ \lambda_kv_k: \lambda_1,...,\lambda_k\in
+\mathbb{F}_q\}$. and thus $|S| = q^k$, since there are $q$ possibilities. for
+each $\lambda$
+
+Notation: A $(n,k)$-code over $\mathbb{F}_q$ is a $[n,q^k]$-code with alphabet
+$\mathbb{F}_q$. Don't confuse these notations!!!
+
+Fact: The information rate of an $(n,k)$-code $S$ is
+$R = \frac{\log_q M}{n} = \frac{K}{n}$. We interpret a codeword in $S$ as
+encoding the $k$ symbols. $(\lambda_1, ..., \lambda_k)$ via the $n$ symbols
+in $\lambda_1v_1 + ... + \lambda_kv_k$
+
+\begin{eg}
+    $C = \{00000, 11100, 00111, 11011\}$ is a linear $(5,2)$-code over
+    $\mathbb{F}_2$ . It has basis 11100, 00111, and we encode two bits,
+    $b_1b_2$ as $b_1(11100) + b_2(00111)$, e.g.
+    $11\mapsto 1(11100) + 1(00111) = 11011$
+\end{eg}
+
+Note: This encoding function depends on choice of (ordered) basis!
+\subsection{Generator Matrices}
+Given a linear $(n,k)$-code $S$ over $\mathbb{F}_q$ and with an
+ordered basis $v_1, ..., v_k$ we form a generator matrix
+$G = [v_1, ..., v_k]$, and the message $m\in\mathbb{F}_{q}^k$ is
+encoded as $m\mapsto c = mG$
+
+\begin{eg}
+    For $C = \{00000, 11100, 00111, 11011\}$,
+    $G = [1 1 1 0 0] [0 0 1 1 1]$ is generator matrix, and we
+    encode $m = (b_1, b_2)$
+\end{eg}
+
+\begin{defn}
+    A generator matrix $G$ is in standard form if
+    $G = [I_k | A]$ where $I_k$ is the identity matrix.
+\end{defn}
+
+\begin{eg}
+    $[1 1 1 0 0][0 0 1 1 1]$ is not in standard forom. But, if
+    we swap every second and the fourth symbols, we get a code
+    $C' = \{00000, 10110, 01101, 11011\}$ with $G' = [1 0 1 1 0][0 1 1 0 1]$ being a
+     standard form generator matrix for $C'$.
+\end{eg}
+
+\begin{defn}
+    A systematic code is a linear code which has standard form generator matrix
+\end{defn}
+
+\begin{eg}
+    $C$ is not a systematic code, but $C'$ is!
+\end{eg}
+
+\begin{thm}
+    Every linear $(n, k)$-code can be transformed into a sytematic code by
+    permutation of the coordinates.
+\end{thm}
+
+\begin{proof}
+    Starting with any generator matrix $G = M^{k\times n}(\mathbb{F})$, our
+    code $row(G)$ which is unchanged under elementary row operations.
+    So by row reduction, we can assume that $G$ is in reduced row echelon
+    form. So there coordinates $a_1, ..., a_k$ such that the corresponding
+    columns of $G$ forms an identity submatrix. (these are the columns with
+    leading 1's). So if we permute the columns such that $a_1, ..., a_k$
+    become the first $k$ columns, we get a modified code with generator matrix
+    $G'$ in standard form.
+\end{proof}
+
+\begin{eg}
+    $C = \{00000, 11100, 00111, 11011\}$ is not systematic. But! that is
+    effective, so let's illustrate its:
+    $G = [[1 1 0 1 1], [1 1 1 0 0]]$ RREF, then permute to standard form.
+    So $C' = \{00000, 11100, 01011, 10111\}$ is systematic
+\end{eg}
+
+Note; $C'$ has a nice encoding function!
+$00\mapsto 00000, 01\mapsto 01011, 10\mapsto 10111, 11\mapsto 11100$
+
+Fact: With the standard form $G$, the codeword contains the message in first $k$ symbols.
+The last $n-k$ symbols are added redundancy that gives error correcting
+detecting capabilities.
+
+\begin{eg}
+    A common type of 1-error detecting code is contained by adding a bit at the end
+    of a binary word, such that there are an even \# of 1's, so
+    $101111\mapsto 101111, 111100\mapsto 1111000$ This is a parity check-bit.
+    This gives a $(n+1, n)$-code. This has distance 2 (exercise).
+\end{eg}
+
+\begin{eg}
+    The parity check code $C = \{0000, 0011, 0101, 0110, 1001, 1010, 1100, 1111\}$
+    has a nice description. $C = \{x\in\mathbb{F}^4_2: x*1111 = 0\}$, dot product.
+\end{eg}
+
+\begin{defn}
+    The dot product of $(x_1, ..., x_n)$ and $(y_1,...,y_n)$ is
+    $x_1y_1 + ... + x_ny_n \in \mathbbb{F}$. If 0, then orthogonal.
+\end{defn}
+
+\begin{eg}
+    WE note that $C$ can also be described a
+    $C = \{x\in\{0,1\}: x_1 + x_2 + x_3 + x_4 = 0\}
+    = \{x\in\{0,1\}: x*1111\}$
+\end{eg}
+
+In fact, $C$ is the orthogonal complement of the 4-replicaiton code
+$C^{\perp} = \{0000, 1111\}$
+
+\subsection{Linear Code Duality}
+Now let's properly define those concepts
+\begin{defn}
+    Given $x,y\in\mathbb{F}^n$, we define
+    $x\dot y = x_1y_1 + ... + x_ny_n\in\mathbb{F}$ and we
+    call this the standard inner product
+\end{defn}
+
+\begin{defn}
+    $x, y$ are orthogonal iff $x\dot y = 0$
+\end{defn}
+
+In fact, by property of $\dot$, we only need to have orthogonality
+with basis vectors!
+
+Lemma: $G$ is generation matrix for C, then $C^\{\perp} =
+\{x*v_1=...=x*v_k=0\}$ code-word
+
+\begin{proof}
+    One diretion: is clear is since each $v_i$ is a codeword.
+    Other direction: Suppose $x\in\mathbb{F}^n$ statisfies
+    $x*v_i = 0$ for $i = 0, ..., k$
+\end{proof}
+
+If $G$ is the generation matrix, then the orthogonal space is
+the nullspace of $null(G)$ (nullspace).
+
+Then $C^{\perp} = Null(G)^T$. Transposed to get "row" vectors
+
+\begin{thm}
+    If $C$ has generator matrix, $G = [I_k | A]$, then $C^{\perp}$
+    has generator matrix $H = [-A^T\mid I_{n-k}]$
+\end{thm}
+
+Note: Since all linear codes are equivalent to systematic codes, we
+can extend this via permutation of coodinates.
+
+\begin{cor}
+    if $C$ is a $(n,k)$-code, then $C^{\perp}$ is a
+    $(n, n-k)$-code.
+\end{cor}
+
+Note: If $G$ is any generation matrix for $C$ and
+$H\in M^{n-k}\times n(\mathbb{F})$ of full rank satisfies
+$GH^T$, then $H$ is a generation matrix for $C^T$
+
+\section{Distance of Linear Codes}
+lemma: $d(C) = min \{\text{Hamming weight of} c\in C\}$
+
+\section{February 5, 2018}
+\begin{defn}
+    The Hamming distance $w(v)$ of $v\in\mathbb{F}^n$ is the number of non-zero
+    coordinates in $V$.
+\end{defn}
+
+Note: $w(v) = d(v, 0)$ is the Hamming distance to 0.
+
+\begin{defn}
+    The Hamming weight of a code $C$ is $w(C) = min\{w(C): c\in C\setdiff\{0\}\}$.
+\end{defn}
+
+\begin{thm}
+    If $C$ is a linear code, then $w(C) = d(C)$.
+\end{thm}
+
+\begin{proof}
+    We compute $d(C) = min\{d(x,y): x,y\in C, x\ne y\}$,
+    \begin{align*}
+        d(C) = min\{w(x-y): x, y\ne y\}\\
+        d(C) = min\{w(c): c\in \setdiff \{0\}\}\\
+    \end{align*}
+\end{proof}
+
+Note: We can represent this with our sphere packing analogy.
+
+\begin{eg}
+    If $C$ has the following generator matrix over $\mathbb{F}_3$:
+    \[
+        G =
+        \begin{bmatrix}
+            2 & 0 & 2 & 1 & 0\\
+            1 & 1 & 0 & 0 & 1\\
+        \end{bmatrix}
+    \]
+    There are $3^2 = 9$ codewords.
+\end{eg}
+To get $C^{\perp}$, simply apply the formula. Now we note $c\in C$ satisfies
+$Hc^T = 0$, so we get a linear dependency among the columns of $H$. For example,
+$c = 11001\in C$ gives a linear dependency.
+
+So, we note that every codeword from $C$ corresponds to a linear dependency amoung the
+columns of $H$, hence $d(c)$ is the minimum number of linearly dependent columns in $H$.
+
+Lemma: Given a linear code $C$ with parity-code matrix $H$, every codeword in $C$
+corresponds to a linear dependency among columns of $H$, and vice versa.
+
+\begin{thm}
+    Let $H$ be a parity-check matrix for $C$, then $d(C)\geq S$ iff every collection of
+    $s-1$ columns of $H$ are linearly dependent over $\mathbb{F}$
+\end{thm}
+
+\begin{proof}
+    Suppose that there is a collection of $s-1$ linearly dependent columns of $H$.
+    For simplicity of notation, take them to be the first $s-1$ columns so if
+    $H = [h_1 h_2 ... h_{s_1} h_s ... h_n]$ is $H$ split into columns. Then there are
+    $\lambda_1, \lambda_2, ..., \lambda_{s-1}\in\mathbb{F}$, not all 0, such that
+    $\lambda_1h_1 + \lambda_2h_2 + ... + \lambda_{s-1}h_{s-1} = 0$.
+    Then, $c = (\lambda_1, \lamda_2, ..., \lambda_{s-1}, 0, 0 ..., 0)\in\mathbb{F}^n$
+    satisfies $Hc^{T} = 0$ so $c\in (C^{\perp})^{\perp}$, but clearly
+    $w(c)\leq s-1$ and $c\ne 0$, so in fact, $d(C) \leq s-1$. For other implication,
+    suppose that $d(C)\leq s-1$, then there is a codeword $c\in C$ with $w(c)\leq s-1$
+
+    For simplicity of notation, assume that all non-zero entries of $c$ appear in the
+    first $s-1$ coordinates, so $c = (\lambda_1, \lambda_2, ..., \lambda_{s-1}, 0, ..., 0)
+    \in\mathbb{F}^n$, and not all $\lambda_i$ are 0. Then $Hc^T = 0$, so we have a linear
+    dependency among the first $s-1$ columns of $H$
+    $\lambda h_1 + ... + \lambda_{s-1}h_{s-1} = 0$
+\end{proof}
+
+What is the distance of a code?\\
+Method 1: Check all 16 codewords
+
+We note that columns dependent in $H$, with 1, 2, 4, then $d(C)  \leq 3$. On the other
+hand, no single column is dependant, since none of them is 0. Hence $d(C) > 1$
+
+Now, let's consider a set of two columns of $H$ over $\mathbb{F}_2$, these are linearly
+dependent iff there are two identical columns. This is not the case, so $d(C) > 2$
+
+\begin{lemma}
+    A binary code with PCM has
+    \begin{enumerate}
+        \item $d(C) = 1$ iff $H$ has a 0 column
+        \item $d(C) = 2$ iff $H$ has no 0 column, and two identical columns.
+        \item $d(C) \geq 3$ if 1 wand 2 don't hold.
+    \end{enumerate}
+\end{lemma}
+
+The code is called the Binary Hamming Code of order 3 and has distance 3.
+
+\subsection{Hamming Code}
+...
+\begin{thm}
+    The $n$-replication code for $n$ odd is perfect (Binary)
+\end{thm}
+
+\begin{lemma}
+    A code is perfect iff every word $A^n$ is at distance $\leq e$
+    from a codeword.
+\end{lemma}
+
+\begin{thm}
+    The Hamming Codes are perfect
+\end{thm}
+
+\begin{thm}
+    The only perfect linear codes (up to equivalence) are
+    \begin{enumerate}
+        \item Trivial codes: $\mathbb{F}^n$ is an $(n,n)$-code
+        \item Binary replication codes of odd length
+        \item The Hamming Codes
+        \item The $(23, 12, 7)$-binary Golay code
+        \item The $(11,6,5)$-ternary Golay code
+    \end{enumerate}
+\end{thm}
+
+\subsection{Decoding Linear Codes}
+This is hard in general. We will see after the break after studying Group
+Theory.
+
+Single errors are manageable. Suppose $C$ is an $(n,k)$-code over $\mathbb{F}$, with
+PCM (parity code matrix) $H$
+
+We will take advantage of linear algebra! Starting point: We note that
+$c\in C$ iff $Hc^T = 0$.
+
+What if we perturb $c$?\\
+$H(c+e)^T = Hc^T + He^T = 0 + He^T = He^T$. So if
+$w(e) = 1$, then we can see that $H(c+e)^T = He^T$ is going to be a multiple of
+a column of $H$!
+
+\begin{defn}
+    If $c\in C$ is sent and $r\in\mathbb{F}^n$ is received, then the error vector
+    is $e = r-c$ (so $c+e = r$)
+\end{defn}
+
+Algorithm to decode single errors:
+\begin{enumerate}
+    \item If $r$ is received, comput $s = Hr^T$
+    \item If $s = 0$ , accept $r$
+    \item If $s \ne 0$, compute $s$ to each column of $H$, and determine if
+        $s = \alpha h_i$ for some column $h_i$ and scalar $\alpha$.
+    \item Decode to to $c = r - e$ where $e = (0, ..., \alpha, 0, ...)$
+    \item Reject otherwise. This is an implementation of IMLD.
+\end{enumerate}
+
+Questions: These can cover anything I wrote on board, including exercises.
+\begin{enumerate}
+    \item Basics: Multiple short questions (25pts)
+        \begin{enumerate}
+            \item Specific codes we've defined
+            \item Basic terminology/notation
+            \item Information rate, Hamming distance, and properties
+            \item Channel encoding/decoding, big picture
+        \end{enumerate}
+    \item Coding Theory! (Error Correcting) (15 pts)
+        \begin{enumerate}
+            \item Maybe: Design code given specs
+            \item Maybe: Design a decoder
+            \item Maybe: Prove an important result, or partial result
+        \end{enumerate}
+    \item Finite Fields (15 pts) Assignment
+    \item Linear Codes, up until now (25 pts)
+\end{enumerate}
+
+Let $C$ be an $(n, k)$-code over $\mathbb{F}$. Recall that $\mathbb{F}^n$
+is an Abelian Group of order $q^n$, and $C$ is a subgroup of order $q^k$.
+So we can partition $\mathbb{F}^n$ into $C_0 = C_1, C_2, ..., C_{t-1}$ with
+$t = \frac{q^n}{q^k} = q^{n-k}$.
+
+Crucial observation for decoding:
+
+If $c\in C$ is transmitted, and $r$ is received, then the error vector
+$e = r-c$ satisfied $r\equiv e\bmod{C}$. In other words, $r$ and $e$ are
+in the same coset.
+
+\begin{eg}
+    Let $C$ be the binary $(4,2)$-code with GM. $G = [[ 1 1 0 0 ], [ 0 0 1 1 ]]$
+    \begin{align*}
+        C_0 = C = \{0000, 1100, 0011, 1111\}\\
+        C_1 = C + 1000 = \{1000, 0100, 1011, 0111\}\\
+        ...
+        C_3 = C + 1001 = \{1001, 0101, 1010, 0110\}\\
+    \end{align*}
+\end{eg}
+
+Either 0000 was send and $e = 1010$\\
+Either 1100 was send and $e = 0110$\\
+Either 0011 was send and $e = 1001$\\
+Either 0101 was send and $e = 0101$\\
+
+This confirms our observation that $e$ must be in the cost of $r = 1010$, which is
+$C_3$.
+
+Question: What would IMLD do? Reject! Since all codewords are at distance 2, and
+ties are rejected.
+
+what if $r = 0100$? We can use the table from earlier to set up a CMLD decoder.
+For each coset, we choose a coset leader to be an element of lowest weight. So
+for, $C_0$, it's 0000, for $C_1$ it's 1000, $C_2$ it's 0010, and $C_3$ it's
+1001. Then our CMLD always assumes that for a received codeword $r\in C_i$ , the
+error was the coset leader. So $c=0100$ has $e=1000$ and is decoded to $c=1100$.
+By the way, we wrote down the table, there is a simple description for our CMLD.
+\begin{enumerate}
+    \item Find $r$ in the table
+    \item More to top of table, and out $c$ this is standard array deoding.
+\end{enumerate}
+
+Algorithm: Std Array Decoding
+
+Compute a std array with rows $c_0, c_1, ..., c_{t-1}$, and entry in row $i$, and
+column $j$ obtained by adding the coset leader $l_i$ of each $C_i$ to the codeword
+$c_j\in C$ at the top of its column. $l_i$ must have min weight.
+
+Input: A word $r$
+
+Step:
+\begin{enumerate}
+    \item Locate $r$ in std array, say $r\in C_i$
+    \item Correct $r$ to $c = r - l_i$ at the top of the column
+\end{enumerate}
+
+Observation If $r = c+e$, then we multiply through by $n$, PCM H:
+\begin{align*}
+    Hr^T = Hc^T + He^T\\
+    = 0 + He^T = He^T\\
+\end{align*}
+
+In other words, for each element of a coset $c_i$, we get the same
+result when we multiply by $H$.
+$x,y$ are in same coset $\iff$ Hx^T = Hy^T.
+This allows us to summarize the std array.
+
+Modified algorithms: Give $r$, calculate $Hr^T$, locate in new table,
+assume $e$ is coset leader decode to $c=r-e$.
+
+For example, if $r = 10001$, then $(Hr^T)^T = 110$, so we assume
+$e = 01000$, and decode to $c = r-e = 11001$.
+
+Note after precomputing all coset leaders, and syndromes $Hr^T$,
+this new algorithm saves space. Good for 60's applications.
+
+Syndrome Decoding(CMLD)
+
+Note: This is equivalent to std array decoding in terms of input/output. For
+storage, we've reduced from for std array: $n*2^n$, for syndrome decoding:
+$n2^{n-k}$, $n$ bits for each coset leader.
+
+\begin{defn}
+    The Binary Golay Code is the (23, 12)-binary code with generator matrix
+    $[I_{12} | \hat{B}]_{12\times 23}$
+\end{defn}
+Properties: $d(c_{23}) = 7$ (proof later). This is a perfect code.
+Check:
+\begin{align*}
+    |c_{23}|\sum_{i=0}^e \binom{n}{i} = 2^{23}
+\end{align*}
+
+To study the mathematical properties, it is useful to study the
+related code. The Extended Binary Golay Code is a (24, 12)-code
+with $d = 8$.
+\begin{defn}
+    Let $B = [0 1 ... 1]^T\hat{B}$ (noting $B^T = B$)
+\end{defn}
+
+Then the generator matrix for Extended Golay Code is $G = [I_{23} | B]$.
+notated $C_{24}$.
+
+Properties of $c_{24}$
+\begin{enumerate}
+    \item Used on 1979 Voyager Space mission to Jupiter + Saturn
+    \item $GG^T = 0$
+\end{enumerate}
+
+$H = [-B^T | I_{12}] = [B | I_{12}]$ is a pcm.
+Hence $H = [B | I_{12}]$ is also a generator matrix for $C_{24}$ which come
+in handy.
+
+$d(C_{24}) = 8$
+\begin{proof}
+    Note that each row vector $r_i$ has weight 8 or 12. $d(C_{24}) = 8$. Note that
+    $4\mid w(r_i)$ for any two rows $r_i, r_j$, and
+    $r_i \dot r_j = 0$. Hence there are an even $#$ of
+    positions with both having bit 1. As a result, $r_i + r_j$ also has
+    $4\mid w(r_i + r_j)$. Since $#1$'s in first row is multiple of 4, and
+    also for 2nd row, to obtain third row, we comibine those , and strike
+    out an even number of pairs of 1s. Hence, in third row, there is $#$ of
+    1s that is a multiple of 4. So $4\mid w(r_i+r_j)$. Similarly by induction,
+    we seee that $4\mid w(r_i + r_j + r_k)$ etc. This idea gives a proof that
+    $4\mid w(c) \forall c\in C_{24}$ As a rseult, $w(C)$ is either 4 or 8. so
+    to show $d(C) = 8$ we only need to show that no codeword has weight 4.
+    We consider cases:
+    \begin{itemize}
+        \item No single row has weight 4
+        \item Consider $r_i + r_j$ and we can check that $w(r_i + r_j) = 8$.
+    \end{itemize}
+    Consider $w(r_i + r_j + r_k)$. If $w(r_i + r_j + r_k) = 4$, consider the
+    first and second half of the the bits $r_i + r_j + r_k = x\mid y$. We
+    have $w(x) = 3$, so $w(y) = 1$. Trick: consider now $H = [B | I_{12}]$ which
+    is also a generator matrix. Since $w(y) = 1$, in fact $x\mid y$ must be
+    a row of H! But these all have weight 8 or 12.... Contradiction. Hence
+    $wt(r_i + r_j + r_k) \geq 8$
+
+    Consider $w(r_i + r_j + r_k + r_l) = 4$. Similarly we have $w(x) = 4,
+    w(y) = 0$, so $y = 0$, Looking at $H$, that means that in factor $x=0$
+    Contradiction.
+
+    What if we add $S$ or more together? Then $wt(x) \geq 5$, so we can't get
+    a weight 4 codeword.
+\end{proof}
+
+\subsection{Decoding Algorithm for $C_{24}$}
+For we compute a syndrome for a received word $r = (x,y)$, where $x,y$ are the
+first 12 bits and last 12 bits respectively. Let $e = (e_1, e_2)$ be the error
+vector, split into halves. First, let's consider the syndrome
+\begin{align*}
+    S_1 = Gr^T = [I_{12} | B](x,y)^T\\
+    = I_{12}x^T + By^T = x^T + By^T
+\end{align*}
+
+Noting that $G$ is a PCM since $C_{24}$ is self-dual.
+
+So we seek a weight 3 or less $e = (e_1, e_2)$ such that
+$s_1 = e^T + Be_2^T$, so we can correct to $c = r - e$.
+
+(Recall that this is how the standard array/syndrome decoder functions)
+Let's consider cases:
+\begin{enumerate}
+    \item If $s_1 = 0$, then $r\in C_{24}$ so accept $r$
+    \item If $w(s_1) \leq 3$, then we assume that $e_1 = s_2, e_2 = 0$, then
+        indeed $Ge^T = s_1^T + B0^T = s_1^T$
+    \item Consider the case where $w(e_1)\leq 2, w(e_2) = 1$, then we have
+        $s_1^T = e_1^T + Be_2^T$, so if $s_1^T$ differs from a column of $H$
+        in 0, 1 or 2 positions, we take $e_1$ to indicate those, and $e_2$ to
+        to indicate the column.
+\end{enumerate}
+
+\begin{eg}
+    Decode $r = (1000 1000 0000 1001 0001 1101)$. We compute
+    $s_1^T = x^T + By^T = (0100 1000 0000)^T$. We note that that
+    taking $e_1 = s_1, e_2 =0$, we get the same syndrome:
+    $e_1^T + Be_2^T = s_1^T$
+    So take
+    $e = (0100 1000 0000 0000 0000 0000)$, and we decide to
+    $c = re = (1100 0000 0000 1001 0001 1101)$.
+    (exercise: check that $Gc^T = 0$).
+\end{eg}
+
+\begin{eg}
+    Decode $r = (1000 0010 0000 1000 1101 0010)$, We compute
+    $s_1 = Gr^T = x^T + By^T = (1011 1110 1011)^T$. We note that
+    $s_1^T$ differs from $b_4$ (column 4)  in posiitons 6 and 7. So
+    we assume $e_1 = (0000 0110 0000)$ and $e_2 = (0001 0000 0000)$
+    and we correct to $c = r - e = (1000 0100 0000 1001 1101 0010)$
+    So we have covered the cases where $w(e_2) \leq 1$, what if
+    $w(e_2) = 2, 3$, (still with $w(e) \leq 3$ since $d(C_{24}) = 8$
+\end{eg}
+
+$r = (0100 0010 0000 0100 1101 1011)$
+Compute $s_1 = Gr^T = x^T + By^T$, and we see that this has weight
+$\geq 3$, and differs in $\geq 4$ positions from each column, so
+this excludes the possibility that $w(e_2) \leq 1$. So instead, we
+consider the other cases, still assumming $w(e) \leq 3$, so in
+cases $w(e_1)\leq 1$, since $w(e_2)\geq 2$, so instead compute the
+syndrome using $H = [B|I_{12}]$,
+$s_2^T = Hr^T = Bx^T + y^T$, so we see that we cannot assume $e_1 = 0$,
+or else $w(e_2) = 5$ is too big, we compare this to columns (or rows) of
+$B$, and see that this differs from $b_2$ in positions 1 and 5.
+
+
+Input: $r = (x,y)$ ($x,y$ with 12 bits)
+\begin{enumerate}
+    \item Compute $s_1 = x^T + By^T$. If $s_1 = 0$, output $r$, stop.
+    \item If $w(s_1) \leq 3$, decode to $(x-s_1, y)$ stop
+    \item If $d(s_1, b_i)\leq 2$ for some $i\in\{1,2,...,12\}$, then,
+        let $e_2 = (00000,1,000000)$ indicate positon $i$, and let
+        $e_1$ indicate the 0, 1, 2 bits that flipped then decode to $r-e$.
+        Stop
+    \item Computer $s_2^T = Bx^T + y^T$ (note: $s_2 \ne 0$ or else step 1, stop)
+    \item If $w(s_2)\leq 3$, assume $e_1 = 0, e_2 = s_2$, decode to $r-e$, stop
+    \item IF $d(s_2, b_i) \leq 2$ for some $i\in\{1,2,...,12\}$, let $e_1$ denote
+        position $i$ with a 1, and let $e_2$ denote the $\leq 2$ flipped bits,
+        Decode to $r-e$, stop.
+    \item Reject $r$!
+\end{enumerate}
+
+Question: Suppose $d(s_1, b_i) = 3$. What shortcut could our decoder take?
+Say $s_1 = (0000 1111 1111) = e^T_1 + Be_2^T$. Then we might have
+$e_2 = (1000 0000 0000), e_1 = (0111 0000 0000)$, then $c=r-e$ is a codeword
+with $d(c,r) = 4$. Then we note that $d(c', r) > 3$ for any $c'\in C$ by triangle
+inequality, so reject!
+
+\subsection{March 7, 2018}
+Golay Code: Recall that $C_{24}$ with $G = [I_{12}| B], H = [B|I_{12}]$,
+$(24, 12)$-binary code with $d(C_{24}) = 8$. If we delete first column of $B$ to
+get $\hat{B}$, we get a generator matrix $\hat{G} = [I_{12}|\hat{B}]$ for a
+$(23, 12)$-code $C_{23}$ with $d(C_{23})$, with $d(C_{23}) 7$. This is the
+Golay Code, $C_{23}$ is a perfect code!
+check: sphere packing argument.
+
+$C_{23}$ has another property, if we change the bit order a appropriately to get
+$\tilda{C}_{23}$. This is a cyclic code.
+
+\subsection{Cyclic code}
+\begin{defn}
+    A subspace $S$ of $\mathbb{F}^n$ is called a cyclic subspace if
+    $(a_0, a_1, ..., a_{n-1})\in S, \implies (a_{n-1}, a_0, a_1,...,a_{n-1})\in S$.
+    A linear code $C$ is a cyclic code if $C$ is if $C$ is a cyclic subspace.
+\end{defn}
+
+\begin{eg}
+    $C = \{000, 110, 011, 101\}$ is a cyclic code. Cyclic codes have a lot of
+    algebraic structure. To see this, we go back to polynomial rings. Let
+    $R = \mathbb{F}[x]\setdiff\langle x^n-1\rangle$ for field $\mathbb{F}$. This
+    is a commutative ring. (Not a field if $n > 1$)
+\end{eg}
+
+First we view $R$ as a vector space over $\mathbb{F}$ with basis
+$\{1, x, x^2, ..., x^{n-1}\}$. since $R = \{[a_0 + a_1x + ... + a_{n-1}x^{n-1}]\}$.
+(by division algorithm). In this way, we will identify $\mathbb{F}^n$ with $R$.
+Explicitly, $(a_0, a_1, ..., a_{n-1}) \in \mathbb{F}^n, \leftrightarrow
+a_0 + a_1x + ... + a_{n-1}x^{n-1} \in R$.
+
+\begin{eg}
+    $C = \{000, 110, 011, 101\}$ corresponds to
+    $\{0, 1+x, x+x^2, 1+x^n\}\subseteq \mathbb{F}_2[x]\setdiff x^3-1$
+\end{eg}
+
+Why modulus $x^3 -1$? Note that multiplication by $x$ corresponds to cyclic shift
+\begin{align*}
+    x(1+x) = x + x^2\\
+    x(x+x^2) = x^2+x^3 = 1 + x^2\\
+\end{align*}
+
+In general: The cyclic shift operation in $\mathbb{F}^n$ coresponds to
+multiplication by $x$ in $R = \mathbb{F}[x]/\langle x^n-1 \rangle$
+
+\begin{defn}
+    A non-empty subset $I$ of $R$ [or any commutative ring] is an
+    ideal of $R$ if
+    \begin{enumerate}
+        \item $(I, +)$ is a group
+        \item $\forall a\in I, b\in R, a\cdots b\in I$
+    \end{enumerate}
+\end{defn}
+
+\begin{thm}
+    Let $S$ be a non-empty subset of $\mathbb{F}^n$. Let $I$
+    be the corresponding polynomials in $R$. Then $S$ is a cyclic
+    subspace of $\mathbb{F}^n$ if and only if $I$ is an ideal of $R$.
+\end{thm}
+
+This theorem give us access to a lot of tools to study cyclic codes.
+
+\begin{thm}
+    Let $S$ be a non-empty subset of $\mathbb{F}^n$. Let $I$ be the
+    corresponding polynomials in $R$. Then $S$ is a cyclic subspace of $\mathbb{F}^n$
+    if and only if $I$ is an ideal of $R$. This theorem will give us access to a
+    lot of tools to study cyclic codes.
+\end{thm}
+
+\begin{proof}
+    Suppose $S$ is a cyclic subspace of $\mathbb{F}^n$. Then $S$ is closed under
+    addition, so $I$ is as well. $I$ is also closed under scalar multiplication.
+    Now let $a(x) \subset I$, and $b(x) = b_0 + b_1x + ... + b_{n-1}x^{n-1}\in R$.
+    Since $S$ is a cyclic subspace, $xa(x)\in I$, so therefore,
+    $x(x(x)) = x^2a(x)\in I$, etc. $x^ka(x)\in I$. Hence, by closure of +,
+    we will also have $b_0a(x) + b_1xa(x) + ... + b_{n-1}x^{n-1}a(x)\in I$.
+    so $(b_0, b_1x+ ... + b_{n-1}x^{n-1})a(x) = b(x)a(x) \in I$. We are done.
+
+    Suppose $I$ is an ideal of $R$. Then since $I$ is closed under addition and
+    multiplicaiton by elements of $\mathbb{F}$, it follows that $S$ multiplicaiton
+    by elements of $\mathbb{F}$, it follows that $S$ is a vector subspace of
+    $\mathbb{F}^n$. Finally, since $I$ is closed under multiplication by $x$,
+    $S$ is closed under cyclic shifts, so $S$ is a cyclic subspace.
+\end{proof}
+
+\begin{defn}
+    Let $R$ be any commutative ring, and take $g\in R$, we define
+    $\langle g \rangle = \{g*r: r\in R\}$, to be the principal ideal
+    generated by $g$. (Any ideal $I\subset r$ if which such a $g$
+    exists is called a principal ideal.)
+\end{defn}
+
+\begin{eg}
+    $\langle x-1 \rangle \subset \mathbb{F}_3[x]\setdiff \langle x^3\rangle$
+    is a principal ideal.
+\end{eg}
+
+Fact: $\mathbb{F}[x]\setdiff\langle x^n -1\rangle$ is a principal ideal ring
+meaning that all ideals are principal
+
+\begin{proof}
+    Let $I$ be an ideal of $\mathbb{F}[x]\setdiff \langle x^n-1\rangle$.
+    Case: If $I = \{0\}$, then $I = \langle 0\rangle$
+    Case: If $I\ne \{0\}$, let $g(x)\in 1$ be a lowest degree polynomial,
+    with $g(x) \ne 0$. Then take any $h(x)\in I$. Then divide by $g(x)$
+    $h(x) = q(x)g(x) + r(x), deg r < deg h$, then in $R$, $h(x)-q(x)g(x)\in I$
+    (since $g(x), h(x) \in I$, and $I$ is closed under + and multiplication
+    by $(-q(x))$, so $r(x) = h(x) - q(x)g(x) \in I$, but $deg r < deg g$!, so
+    in fact $r = 0$, to avoid a contradiction since $deg g$ is minimal.
+\end{proof}
+
+hence $g(x)\mid h(x)$. It follows that $I = \langle g(x) \rangle$
+
+\begin{defn}
+    $g(x)\in\mathbb{F}[x]$ is monic if the leading coefficient is 1.
+\end{defn}
+
+Fact; Every non-zero ideal of $R = \mathbb{F}[x]\setdiff \langle x^n-1\rangle$
+is of the form of $\langle g(x)\rangle$ for a monic $g(x)$, which is a min
+degree non-zero element.
+
+Analogy: $\mathbb{Z}$ is also principal ideal ring. Any ideal $I \subseteq\mathbb{Z}$
+is of the form $I = \langle n \rangle = \{nk: k\in\mathbb{Z}\}$.
+
+Question: Let $I$ be the ideal $I = \{12x + 15y: x,y\in\mathbb{Z}\} = \langle 12, 15\rangle$
+
+By Bezout's lemma, $I = \langle 3 \rangle$ where $3 = gcd(12, 15)$.
+
+\section{March 12, 2018}
+\begin{thm}
+    Let $I$ be a non-zero ideal of $R$.
+    \begin{enumerate}
+        \item There is a unique monic polynomical $g(x)$ of smallest degree in $I$, and
+            $I = \langle g(x) \rangle$
+        \item $g(x)\mid x^n -1$ in $\mathbb{F}[x]$
+    \end{enumerate}
+\end{thm}
+
+
+\begin{proof}
+    \begin{enumerate}
+        \item Let $g(x), h(x)$ be both monic generators of lowest degree in $I$, so
+            $g(x) -h(x)\in I$, also, and we see $deg(g-h) < deg g = degh$
+            (monic), but $g$ has min degree in $I$, so we must have $g-h=0$
+        \item Write $x^n - 1 = g(x)q(x) + r(x)$ by division algorithm with
+            $deg(r) < deg(g)$, then $r(x) = -q(x)g(x)\in I = \langle g(x) \rangle$.
+            But $deg g$ is minial in $I$, so we must have $r=0$. Hence $g(x) \mid x^n-1$
+    \end{enumerate}
+\end{proof}
+
+\begin{eg}
+    In $\mathbb{F}\setdiff \langle x^3-1 \rangle$, what is the generator polynomial
+    of $I = \langle x^2 - x\rangle = \{a(x)(x^2 - x)\in R\}$?
+
+    Note: by theorem, $x^2-x$ is not the generator polynomial since $x^2 - x\not\mid
+    x^3 - 1$. So what is the monic generator polynomial?
+
+    Let's try some stuff out:
+    $x^2-x\in I$, so $x(x^2-x) = x^3 + x^2 = 1+x^2\in R$ (calculation in $R$).
+    $x(1+x^2)\in I$, so $x+x^3 = x+1\in I$. This has smaller degree than
+    $x^2-x$. In fact, $I = \langle x + 1\rangle$
+\end{eg}
+
+\begin{thm}
+    If $g(x)$ is a monic divisor of $x^n-1$, then $h(x)$ is the (monic) generator
+    polynomial of $I = \langle h(x) \rangle$
+\end{thm}
+
+\begin{proof}
+    So how we've actually classified all cyclic codes!
+\end{proof}
+
+\begin{eg}
+    What are all cyclic subspaces of $\mathbb{F}_2^3$? Solution:
+    These correspond exactly to monic divisors of $x^3 -1\in\mathbb{F}_2[x]$.
+    Irreducible factorization! $x^3-1 = (1+x)(1+x+x^2)$. So cyclic codes are
+    $g_1(x) = 1: \langle g_1(x) \rangle = \mathbb{F}_2^3 =
+    \{000, 001, 010, 011, 100, 101, 110, 111\}$\\
+    $g_2(x) = 1+x: \langle g_2(x)\rangle = \{0, 1+x, x+x^2, 1+x^2\}$
+    corresponding to $S = \{000, 110, 011, 101\}$
+    $g_3(x) = 1+x+x^2: s_3 = \{000, 111\}$\\
+    $g_4(x) = (1+x)(1+x+x^2): s_4 = \{000\}$\\
+    (since $g_4(x) = x^3 - 1 = 0$ in $R$.)
+\end{eg}
+
+In general, $x^n -1 \in\mathbb{F}[x]$ has an irreducible factorization
+$x^n - 1 = p_1(x)^{e_1}p_2(x)^{e_2}...p_k(x)^{e_k}$
+into monic irreducible polynamial which are pairwise distince. So there are
+many cyclic code of length n.
+$(e_1 + 1)(e_2 + 1)....(e_k + 1)$
+
+\begin{thm}
+    Let $g(x)$ be a monic divisor of $x^n - 1$ with $deg(g) = n-k$. Then
+    $I = \langle g(x) \rangle = \{a(x)g(x): a(x)\in R\}
+    = \{\bar{a}(x)g(x) \in R: deg \bar{a} < k\}$
+\end{thm}
+
+We can represent any element of $I$ as $\bar{a}(x)g(x)$ with
+$deg \bar{a} < k$, and $deg g = n-k$.
+Futhermore, the $\bar{a}$ givves a unique way to represent any element
+of $I$
+
+\begin{proof}
+    Take any element $h(x) = a(x)g(x) \in I$. So in $\mathbb{F}[x]$,
+    $a(x)g(x) = q(x)(x^n -1) + h(x)$. But $g(x) \mid a(x)g(x)$ and
+    $g(x) \mid x^n -1, g(x) \mid a(x)g(x) - q(x)(x^n -1) = h(x)$
+    Hence $h(x) = \bar{a}(x)g(x)$ in $\mathbb{F}[x]$ for some
+    $\bar{a}(x)\in\mathbb[x]$, and since $deg h$ can be taken to be
+    $< n$, we must have
+    \begin{align*}
+        deg(\bar{a}) = deg h - deg g < n - (n-k) = k
+    \end{align*}
+\end{proof}
+
+\begin{cor}
+    If $g(x) \mid x^n -1, deg g = n-k$, and $g$ monic, Then the cyclic
+    code $\langle g(x) \rangle$ hsa dimension $k$
+\end{cor}
+
+\begin{proof}
+    By lemma, we have $I = \{a_0 + a_1x + ... + a_{k-1}x^{k-1})g(x): a_0, ...
+    a_{k-1}\in\mathbb{F}\}$. and each representation is unique.
+    So $I$ has basis $\{g(x), xg(x), x^2g(x), ..., x^{k-1}g(x)\}$, so $dim I = k$
+\end{proof}
+
+\begin{eg}
+    Construct a $(7,4)$-cycle code over $\mathbb{F}_7$. Say this corresponds to
+    $\langle g(x) \rangle$, where $g(x)\mid x^7-1$. So that $k = 4$, we need
+    $deg g = n - k = 7-4 =3$
+\end{eg}
+
+Then as a polynomials of $deg < n-k$, they are:
+$x^0, x^1, ..., x^{n-k-1} \bmod{g(x)}$ (for $I$ block)\\
+$x^{n-k}, x^{n-k+1}, ..., x^{n-1} \bmod{g(x)}$
+
+The syndrome is then simply a matter of taking the remainder upon
+division by $g(x)$
+
+Note: This means that we only need to know $g(x)$ (and we forget $H$)
+
+\subsection{Cyclic Burst Error}
+Instead of focusing on error correcting/detecting capability in general,
+we narrow our focus to errors that occur in "bursts" now.
+
+Observation: If error occurred in $r_0$, say, then $e = (1, 0, ..., 0)$
+so syndrome is $e(x) \bmod{g(x)} = 1$, more generally, if the errors all
+occur in the first $t$ symbols (for $t\leq n-k$), then
+$e(x) = (e_0, e_1, e_2, e_3,...,e_{t-1}, 0, ..., 0)$ will have syndrome
+$e(x) \bmod{g(x)} = e_0 + e_1x + ... + e_{t-1}x^{t-1} = e(x)$
+Point is: it is simple to decode errors that all occur at the beginning.
+
+Observation2: If $r(x)$ has syndrome, $s(x)$, then it is simple to
+compute the syndrome of its cyclic shfit:
+\begin{thm}
+    If $r(x)$ has syndrome $s(x) = s_0 + s_1x + ... + s_{n-k-1}x^{n-k-1}$,
+    then the syndrome of $xr(x)$ is
+    \begin{enumerate}
+        \item $xs(x)$ if $s_{n-k-1} = 0$
+        \item $xs9x) - s_{n-k-1}g(x)$ if $s_{n-k-1} \ne 0$
+    \end{enumerate}
+\end{thm}
+
+\begin{proof}
+    we have $r(x) = l(x)g(x) + s(x)$ for some $l(x)\in\mathbb{F}[x]$,
+    so $xr(x) = xl(x)g(x) + xs(x)$
+    \begin{enumerate}
+        \item If $s_{n-k-1} = 0$ then $deg(xs(x)) < n-k = deg g$, so
+            $xs(x)$ is the remainder of $xr(x)/g(x)$. So it the syndrome.
+        \item If $s_{n-k-1} \ne 0$, then
+            \begin{align*}
+                xr(x) = xl(x)g(x) + xs(x) - s_{n-k-1}g(x) +s_{n-k-1}g(x)\\
+                = (xl(x) + s_{n-k-1})g(x) + (xs(x) - s_{n-k-1}g(x)\\
+                x(...+s_{n-k-1}x^{n-k-1}) - s_{n-k-1}(...+x^{n-k})
+            \end{align*}
+    \end{enumerate}
+\end{proof}
+
+\begin{defn}
+    Let $e\in\mathbb{F}^n$. The cyclic burst lengt of $e$ is the
+    shortest cyclic block in $e$ containing all non-zero elements of $e$\\
+    $e$ is a cyclic burst error of length $t$ if its burst length is $t$.
+\end{defn}
+
+\begin{defn}
+    $C$ is an t-cyclic burst error correcting code if all cyclic burst errors
+    of length $\leq t$ are in different cosets of $C$. The lenght such $t$ is
+    the cyclic burst error correcting capability of $C$.
+\end{defn}
+
+\begin{eg}
+    $g(x) = 1+x+x^2+x^3+x^9$ generates a binary $(15,9)$-cyclic code $C$,
+    Check $g(x) \mid x^15-1$. Let's use syndrome decoding:
+    Let $E = \{\text{cyclic burst errors of length $\leq 3$}\}$, and we
+    check that these all have different syndromes.
+\end{eg}
+
+Check: the integer representation of syndrome are all different. Thus we have 3-cyclic
+burst error correcting code!
+
+observation: This is one way to check burst error correcting capability. We can then use
+table for syndrome decoding. But there is a better way! Suppose error occurred in the
+middle $e = 0000 0001 1100 0000$, $r = c+e$
+
+This idea leads to error trapping algorithm.
+
+\section{Error Trapping}
+This is a decoding algorithm for $C$.
+Idea: Suppose $e$ is an error vector with cyclic burst length $\leq t$. Then some
+cyclic shift of $e$, say $e_i \leftrightarrow x^ie(x)$ has all non-zero entries in
+the first $t$ positions. Then the syndrome $s_i = He_i^T$ has burst length $\leq t$,
+and we take $e_i = (s_i, 0)$. Lastly, we shift it all the way around,
+$e(x) = x^{n-i}e_i(x)$ and correct $r$ to $c = r-e$.
+
+Question: How do we compute $s_i$?
+(Recall: the syndrome of $r(x)$ is $r(x)\bmod{g(x)}$. We start by computing
+$s_0(x) = r(x) \bmod{g(x)}$. If $deg s_0 < t$, then we can take $e=(s_0, 0)$,
+and decode to $r-e$.
+Otherwise, we compute $s_i(x)$ using rule form last lecture:
+\begin{align*}
+    s_1(x) = xr(x)\bmod{g(x)}\\
+    = xs_0(x)\bmod{g(x)}\\
+    = xs_0 if $deg < n-k$
+    = xs_0(x) - (leading coefficient $s_0$)g(x) otherwise.
+\end{align*}
+
+Algorithm: Error Trapping!
+Input: $r(x)$ is received word
+Steps: For i from 0 to i:
+    compute $s_i$
+    If $deg(s_i) < t$, then
+    let $e(x) = x^{n-i}s_i(x)$
+    correct $r(x)$ to $c() = r(x) - e(x)$
+
+Recall:
+$g(x) = 1 + x + x^2 + x^3 + x^6$ is a 3-cycle burst ecc.
+Decode $r = (1110 1110 1100 000)$
+Solution: $r(x) = 1+x+x^2+x^4+x^5+x^6+x^8+x^9$. Compute
+$s(x)$ by long division.
+
+$s(x) = 1+x+x^4+x^5$, $s_0 = (1100 1100 0000 000),
+deg 3 \geq 3$, so we can't correct at the moment.
+Next $s_1(x) = xs(x)\bmod{g(x)} = x+x^2+x^5+x^6-g(x)
+= 1 + x^3 + x^5$, or more simply: $s_0 = 110011$.
+
+\section{Bounds on cyclic burst error correcting capability}
+Let $C$ have cbecc of $t$. First observation: If $d(C) = d$,
+then $t\geq \floor{\frac{d-1}{2}}$
+\begin{proof}
+    Let $\epsilon = \celling{\frac{d-1}{2}}$. Since $C$ can
+    correct any error of with $\leq\epsilon$, all words of
+    weight $\leq\epsilon$ are in different cosets of $C$.
+    In particular, any error of burst length $\leq\epsilon$ will
+    have weight $\leq\epsilon$, so all of these lie in different
+    cosets of $C$, so $t\geq\epsilon$.
+\end{proof}
+
+Second observation: $t\leq n-k$. So in particular,
+$e = **** 0....0$ represents a different coset. Hence
+$q^t\leq$ number of cosets of $C$.
+We can do better.
+\begin{thm}
+    \begin{align*}
+        t\leq \frac{n-k}{2}
+    \end{align*}
+\end{thm}
+
+Note: a $(15,9)$-cyclic code has $t\leq \frac{15-9}{2} = 3$.
+
+\subsection{Interleaving}
+Idea: we can increase the cyclic burst error correcting
+capability $t$ of a code $C$ as follows:
+
+\begin{thm}
+    Let $C$ be an $(n,k)$-code over $\mathbb{F}$ with
+    c.b.e.c.c capability $t$. Let $C^*$ be the
+    $ns, ks$-cyclic code obtained by interleaving $C$ to
+    depth $s$. Then $C^*$ has c.b.e.c. capability such that
+\end{thm}
+
+Question: If $C$ has generator polynomial $g(x)$, what is gen.
+polynomial of $C^*$?
+
+We have $g(x)\mid x^n-1, deg(g) = n-k$, so
+$g*(x)\mid x^{ns}-1, deg(g^*)=ns-ks = s(n-k)$.
+Answer: $g*(x) = g(x^s)$
+
+\section{BCH Code}
+Given $n$ and $\delta$, these codes are designed as cyclic $(n,k)$-codes with
+length $n$, and with distance $d\geq\delta$. ($\delta$ is the designed distance).
+These are used in CDs, for example, where scratches or other problems might
+cause errors.
+
+We need to study minimal polynomials in finite fields to define BCH codes.
+
+\subsection{Minimal Polynomials}
+Suppose $\mathbb{F}$ is a finite field of characteristic $p$
+\begin{defn}
+    Given $\alpha\in\mathbb{F}$, there is a unique polynomial $f(x)\in\mathbb{F}_p[x]$
+    of minimum degree which is monic and satisfies $f(\alpha)$. This is called the
+    minimal polynomial of $\alpha$ (over $\mathbb{F}_p$).
+\end{defn}
+
+\begin{eg}
+    $1 + i\in\mathbb{C}$ has what minimal polynomial over $\mathbb{R}$. I want
+    $f(z)\in\mathbb{R}[z]$ of minimum degree with $f(1+I) = 0$. By MATH 135,
+    $f(z) = (z-(1+i))(z-(1-i)) = (z-1-i)(z-1+1), f(z) = (z-i)^2-i^2 = z^2 - 2z + 2$.
+    Observation: we don't only need $\alpha$ as a root, we alsa need its conjugates
+    as roots.
+\end{eg}
+
+\begin{defn}
+    In $\mathbb{F}$ with $char(\mathbb{F}) = p$, the conjugates of $\alpha\in\mathbb{F}$
+    are $\alpha, \alpha^p, \alpha^{p^2}...$.
+    Note: If $|\mathbb{F}| = q = p^n$, then $\alpha^q = \alpha$ by Fermat little
+    Theorem. so the list $\alpha, \alpha^p, \alpha^{p^2}...,\alpha^{p^{n-1}}$ is
+    complete, and after it will repeat. The might already be repeatition!
+\end{defn}
+
+So will oftern let the following denote the conjugate without repetition,
+$conj(\alpha\) = \{\alpha, \alpha^p, \alpha^{p^2},...,\alpha^{p^{t-1}}\}$
+
+\begin{thm}
+    The minimal polynomial of $\alpha\in\mathbb{F}$ is $f_{\alpha} =
+    \prod_{\beta\in conj(\alpha)} (x-\beta)
+    = (x-\alpha)(x-\alpha^p)....(x-\alpha^{p^{t-1}})$
+\end{thm}
+$f_\alpha(x)\in\mathbb{F}_p[x]$
+
+\section{March 28, 2018}
+For $\beta\in\mathbb{F}_{p^n}$, we have
+\begin{align*}
+    m_B(z) = \prod_{\gamma\in C(B)}(z-\gamma)\\
+    = (z-\beta)(z-\beta^q)(z-\beta^{q^2})...(z-\beta^{q^{t-1}})
+\end{align*}
+and $m_\beta(z)\in\mathbb{F}_q[z]$
+
+\begin{proof}
+    Consider my polynomial, $f(z)\in\mathbb{F}_q[z]$ with $f(\beta) = 0$, so if
+    $f(z) = a_0 + a_1z + ... + a_{\delta}z^{\delta}$
+    then $a_0 + a_1\beta + ... + a_{\delta}\beta^{\delta} = 0$
+    Raise to qth power (i.e. apply Frobenius automorphism).
+    $(a_0 + a_1\beta + ... + a_{\delta}\beta^{\delta})^q = 0$,
+    $(a_0^q + a_1^q\beta^q + ... + a_{\delta q}\beta^{\delta q} = 0$,
+    $(a_0^q + a_1\beta^q + ... + a_{\delta}\beta^{\delta q}) = 0$,
+    since $a_i^q = a_i$ because $a_i\in\mathbb{F}_q$, so
+    $f(\beta^q) =  0$. By this same result, since $\beta^q$ is a root of $f(z)$, so
+    is $(\beta^q)^q = \beta^{q^2}$. And again, so are
+    $\beta^{q^3}, \beta^{q^4},...$ So all conjugates of $\beta$ are roots.
+    $m_B(z) = (z-b)(z-b^q)(z-b^{q^2})...(z-b^{q^{t-1}}) \div f(z)$
+    So if $m_b(z)$ shown to be $\mathbb{F}_q[z]$, then it must in fact be min.
+    polynomial. But it is! Idea:
+    If $m_B(z) = a_0 + a_1z + ... + a_{t-1}z^{t-1}$, then
+    $m_B(z)^q = a_0^q + a_1^qz^q + ... + a_{t-1 q}z^{t-1 q}$,
+    and also,
+    \begin{align*}
+        (m_b(z))^q = (z-b)^q(z-b^q)^q...(z-b^{q^{t-2}})(z-b^{q^{t-1}})\\
+        (m_b(z))^q = (z^b-b^q)(z^q-b^{q^2})...(z^q-b^{q^{t-1}})(z^q-b^{q^{t}})\\
+    \end{align*}
+    But in fat, the list of conjusgates "wraps around" back to beginning and
+    $\beta^{q^t} = \beta$, and so
+    \begin{align*}
+        (m_b(z))^q = (z^b-b)(z^q-b^{q})...(z^q-b^{q^{t-1}})\\
+        = m_b(z^q) = a_0 + a_1z^q + ... + a_{t-1}z^{(t-1)q}\\
+    \end{align*}
+    Compairing this, we see that $a_i^q = a_i$ so $a_i\in\mathbb{F}_q$
+\end{proof}
+
+Orders of fields elements and factoring $x^n-1$.
+\begin{defn}
+    Suppose $\beta\in\mathbb{F}_q\setdiff\{0\}$. Then the order of
+    $\beta = min\{t\in\mathbb{Z}: t>0, \beta^t = 1\}$
+\end{defn}
+
+\begin{thm}
+    $ord(\beta) = |\{\beta, \beta^2, ...,\}|$ is the size of the mulplicative group
+    generated by $\beta$.
+\end{thm}
+
+\begin{thm}
+    For any $n\in\mathbb{Z}$, $\beta^n = 1 \leftrightarrow ord(\beta)\div n$
+\end{thm}
+
+\begin{eg}
+    What is ord(2) for $2\in\mathbb{F}_7$? In $\mathbb{F}_7,
+    2^1 = 2, 2^2 = 4, 2^3 = 1, ord(2) = 3$
+\end{eg}
+
+Why are we studying this? To define cyclic codes, we work with factorization of
+$z^n-1$, and if $ord(\beta)=n$, then
+\begin{thm}
+    If $ord(\beta)=n$ for $\beta\in\mathbb{F}_q$, then
+    in $\mathbb{F}_q[z]$, we have $z^n-1 = (z-1)(z-\beta)...(z-\beta^{n-1})$
+\end{thm}
+
+
+\begin{thm}
+    If $ord(\beta) = n$ for $\beta\in\mathbb{F}_q$, then in $\mathbb{F}_q[z]$, we
+    have $z^n-1=(z-1)(z-\beta)...(z-\beta^{n-1})$
+\end{thm}
+
+\begin{proof}
+    $\beta^i$ for $i = 0, 1, ..., n-1$ gives $n$ distinct roots of $z^n-1$, since
+    $(\beta^i)^n -1 = (\beta^n)^i -1 = 1^i - 1 = 0$
+\end{proof}
+
+Now, we combine the two idea, we factor $z^n-1$ completely, and then we group
+term together into minimal polynomials.
+
+\begin{eg}
+    Factor $z^5-1$ completely over $\mathbb{F}_2[z]$ starting point, we'll first
+    work over a larger field $\mathbb{F}_{2^4} = \mathbb{F}_{2^4} = \mathbb{F}_2[x]
+    \setdiff \langle x^4 + x +1$, and note $\beta = x^3$ has order 5.
+\end{eg}
+
+Check $\beta^2 = x^6  x^2 + x^3$ by long division (exercise).
+$\beta^3 = x + x^3, \beta^4 = 1+x+x^2+x^3, \beta^5 = 1$. So in
+$\mathbb{F}_{16}[z]$, we have
+$z^5 - 1 = (z-1)(z-\beta)(z-\beta^2)(z-\beta^3)(z-\beta^4)$
+How do we get a factorization over $\mathbb{F}_2$?. We group terms together into
+minimal polynomials which will be in base field, $\mathbb{F}_2$:
+$z-1 = m_{b^0}(z)$ is already in $\mathbb{F}_2[z]$.
+$(z-\beta)(z-\beta^2)(z-\beta^4)(z-\beta^8) = m_{\beta^1}(z)$ is in
+$\mathbb{F}_2[z]$. since we can check that all conjugates of $\beta$ are
+$C(\beta)=\{\beta, \beta^2, \beta^4,\beta^8 = \beta^3\}$ and these are 4
+distinct conjugates since $ord(\beta) = 5$. We compute $m_\beta(z) =
+1 + z + z^2 + z^3 + z^4$ (exercise) by expanding expression and simplifying
+over $\mathbb{F}_{16}[z] = \mathbb{F}_2[x]\setdiff\langle x^4+x+1\rangle)[z]$
+
+So: General process for factoring $z^n - 1 \in\mathbb{F}_q[z]$
+Find $\beta\in\mathbb{F}_{q^m}$ such that $ord(\beta) = n$, so
+$z^n -1 = \prod^{n-1}_{i=0} (z-\beta^i)$ (we will talk about how to find $m$ soon)
+
+The roots $1, \beta, \beta^2, ..., \beta^{n-1}$, should be partitioned into sets of
+conjugates: $\{1, \beta, \beta^2, ..., \beta^{n-1}\} = \cup_{\gamma\in C} C(\gamma).$
+disjoin union.
+wher $S = \{1, \beta, ...\beta^{n-1}\}$ so that each $C(\gamma)$ is disjoint, and the
+union of the $C(\gamma)$ gives $\{1, \beta, ..., \beta^{n-1}\}$
+
+Then we have $z^n -1 = \prod_{\gamma\in S} m_\gamma(z)$, and we compute each
+$m_\gamma(z) = (z-\gamma) (z-\gamma)(z-\gamma^q)(z-\gamma^{q^2)})...$
+to get all of the irreducible factors of $z^n-1\in\mathbb{F}_q[z]$.
+
+\begin{eg}
+    Factor $z^{15}-1\in\mathbb{F}_2[z]$
+    \begin{enumerate}
+        \item We check that $x\in\mathbb{F}_2[x]\setdiff\langle x^4+x+1\rangle$ has
+            $ord(x) = 15$,
+            $x^0 = 1, x^1 = x, ..., x^5 = x + x^2, ..., x^{13} = 1 + x^2 + x^{13},
+            x^{14} = 1 + x^3, x^{15} = 1$ (Check that $ord(x) = 15$ as exercise)
+        \item So $z^{15} -1 = (z-1)(z-x)(z-x^2)...(z-x^{14})$, and we group
+            conjugates together
+            $m_{x^0}(z) = (z-1), m_{x^1}(z) = (z-x)(z-x^2)(z-x^4)(z-x^8)$, since
+            next term repeats $z-x^{16} = z-x$ since $x^{15} = 1$. What's missing
+            $(z-x^3)$ for example, $m_{x^3}(z) = (z-x^3)(z-x^6)(z-x^{16})(z-x^9)$
+            $m_{x^5}(z) = (z-x^5)(z-x^{10})$
+    \end{enumerate}
+\end{proof}
+
+\begin{eg}
+    If we want to factor $z^{16}-1\in\mathbb{F}[x]$
+    \begin{enumerate}
+        \item Find $\alpha$ with $ord(\alpha) = 15$ in $\mathbb{F}_{2^m}$
+            for some $m$. If we take $m=4$, $\mathbb{F}_{2^4}
+            = \mathbb{F}_2[\alpha]\setminus\langle\alpha^4+\alpha+4\rangle,
+            z^{15}-1 = (z-\alpha^0)(z-\alpha^1)....(z-\alpha^{14})$.
+        \item Group conjugate terms:
+            $m_{\alpha_0}(z) = (z-\alpha^0) = z-1$
+            Now we account for $(z-\alpha^1)$.
+            $m_{\alpha^1}(z) = (z-\alpha^1)(z-\alpha^2)(z-\alpha^4)(z-\alpha^8)$
+            Since conjugation mpa is raising to power 2. Using modulo $\alpha^4
+            +\alpha + 1$ ... Find $m_{\alpha}(z), m_{\alpha^2}(z), ...$
+        \item $z^{15}-1 = (1+z)(1+z+z^4)(1+z+z^2+z^3+z^4)(1+z+z^2)(1+z^3+z^4)$
+    \end{enumerate}
+\end{eg}
+
+Finishing:
+\begin{enumerate}
+    \item How do we find $\beta$ of order $n$?
+    \item How do we bound the distance of $c$ in terms of the generator polynomial
+        $g(z)$?
+    \item Construct BCH codes!
+\end{enumerate}
+
+To Adress this, we look at the group structure of $\mathbb{F}_q^x$ which is the
+group on the set $\mathbb{F}_q^x\setminus\{0\}$ with the multiplication operation
+so $|\mathbb{F}_q^x| = q-1$.
+
+\begin{thm}
+    $\mathbb{F}_q^x$ has some element $\alpha\in\mathbb{F}^x_q$ such that
+    $ord(\alpha) = q-1$ so $\mathbb{F}_q^x = \{\alpha^0,...,\alpha^{q-2}\}$ and
+    $\alpha^{q-1} = 1$
+\end{thm}
+
+\begin{eg}
+    $\mathbb{F}_{2^4}$ had $\alpha$ as a generator. So to find $\beta$ of order $n$
+    is simple when $n=q^m-1$ for a power of $q$ minus!! We look in $\mathbb{F}_{q^m}$
+    for a generator. What do we do otherwise?
+
+    To find $\beta$ of order $n$, assuming $gcd(n, q) = 1$, we do
+    \begin{enumerate}
+        \item Find $m$ such that $n\mid q^m-1$
+        \item Find a generator $\alpha$ of $\mathbb{F}^x_{q^m}$
+        \item $\beta = \alpha^{\frac{q^m-1}{n}}$ has order $n$
+    \end{enumerate}
+\end{eg}
+
+\begin{eg}
+    Find $\beta$ of order 5 to factor $z^5-1\in\mathbb{F}_2[z]$.
+    \begin{enumerate}
+        \item We want to find $m$ such that $5\mid 2^m -1$, so
+            $m=4$ works: $s\mid 2^4-1  = 15$
+        \item Find $\alpha\in\mathbb{F}_{2^4}$ of order 15.
+            $\alpha\in\mathbb{F}_2[\alpha]\setdiff\langle
+            1+\alpha+\alpha^4\rangle$
+        \item Take $\beta = \alpha^{\frac{15}{5}} = \alpha^3$
+            has order 5. Why? $\beta = \alpha^3 \ne 1$, since
+            $ord(\alpha) = 15, \beta = \alpha^6 \ne 1,
+            \beta^3 = \alpha^6\ne 1, \beta^4 = \alpha^9\ne 1,
+            \beta^4 = \alpha^{12} \ne 14$, but $\beta^5 = \alpha^{15}$
+            So $ord(\beta) = 5$. Then to factor $z^5 - 1$, group them
+            into conjugate.
+    \end{enumerate}
+\end{eg}
+
+\begin{defn}
+    The cyclotomic coset of $q\bmod{n}$ containing $i$ is
+    $C_i = \{i, iq, iq^2, ..., iq^{t-1}\}$ all in modulus $n$
+    where $t$ is the smallest positive integer such that
+    $iq^t\equiv i\bmod{n}$
+\end{defn}
+
+Fact: The irreducible factors of $z^n-1\in\mathbb{F}_q[z]$ correspond
+exactly to the cyclotomic cosets and the num. of elments in coset is
+the degree.
+
+\begin{eg}
+    The cyclotomic cosets of $2\mod 15$ are:
+    $C_0 = \{0\}, C_1 = \{1, 2, 4, 8\},
+    C_3 = \{3, 6, 12, 9\}, C_5 = \{5, 10\},
+    C_7 = \{7, 14, 13, 11\}$. These correspond to the factors.
+    $z^{15}-1  = (1+z)(1+z+z^4)(1+z+z^2+z^3+z^4)(1+z+z^2)(1+z^3+z^4)$
+    Find minimal polynomial, then gerator factoring....
+\end{eg}
+
+BCH Bound
+\begin{thm}
+    Suppose $g(z)\mid z^n-1$ is the generator polynomial for a cylic code
+    over $\mathbb{F}_q$. If $\beta\in\mathbb{F}_{q^m}$ has order $n$, and
+    there are $\delta - 1$ consecutive powers of $\beta$ that are roots of
+    $g(z)$ then $d(c)\geq\delta$. Explicitly,
+    $\beta^a, \beta^{a+1}, \beta^{a+2}, ..., \beta^{a+\delta-2}$ are all
+    roots of $g(z)$, then $g(z)\geq\delta$
+\end{thm}
+
+\begin{eg}
+    How do I find a code of distance $\geq 3$ of length 15 over $\mathbb{F}_{2}$?
+\end{eg}
+
+Solution 1: Choose $g(z)\mid z^{15}-1$ such that $\beta^0, \beta^1, \beta^2, \beta^3$
+are all roots! By BCH bound, $d(C) \geq 5$.
+
+In fact, the minimal degree $g$ with those roots is
+$g(z) = m_{\beta^0}(z)m_{\beta^1}(z)m_{\beta^3}(z) = (1+z)(1+z+z^4)(1+z+z^2+z^3+z^4)$
+of degree $9 = n-k$, so $n=15, k=6$, $g(z)$ generates a $(15,6)$-cyclic code of
+distance $\geq 5$.
+
+
+Solution 2: We can do better! $\beta^1, \beta^2, \beta^3, \beta^4$ are roots of
+$g(z) = m_{\beta^1}(z)m_{\beta^4}(z)$. Now we have $k=7$, $C$ is a $(15, 7)$-code.
+
+\begin{defn}
+    A BCH code of designed distance $\delta$ and length $n$ over $\mathbb{F}_q$ has
+    generator polynomial: $g(z) = LCM\{m_{\beta^i}(z): a\leq i\leq a+\delat+2\}$ for
+    some integer $a$
+\end{defn}
+
+Goals in designing BCH codes: We want $deg g$ to be small, since $k=n-deg g$. Hence
+smaller $deg g$ means greater information rate!. So we want a collection of
+$\delta-1$ consecutive integers that all lie in a "small" collection of cyclotomic
+cosets
+
+\end{document}
