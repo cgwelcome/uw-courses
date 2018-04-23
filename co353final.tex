@@ -1,0 +1,57 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{cor}{Corollory}
+\newtheorem{prop}{Proposition}
+
+
+\theoremstyle{definition}
+\newtheorem{eg}{Example}
+\newtheorem{rmk}{Remark}
+\newtheorem{defn}{Definition}
+
+\setlength{\parindent}{0cm}
+
+\begin{document}
+\begin{thm}
+    A problem $A$ is polynomial-time reducible to problem $B$, denoted $A\leq_P B$,
+    if all instance of $A$ can be reduced to $B$.
+\end{thm}
+
+Parallel to set theory: $A\subseteq B$, $\forall a\in A, a\in B$
+
+Let $A\leq_P B$, if I can solve $B$ in polynomial time, then I can solve $A$ in polynomial
+time.
+
+
+\begin{thm}
+    A problem $P$ is a complexity class in $NP$ such that there is a polynomial time to
+    solve them
+\end{thm}
+
+\begin{gather*}
+    P\subseteq NP\\
+    \forall Q\in P, Q\in NP
+\end{gather*}
+
+
+\begin{thm}
+    A problem $H$ is NP-complete if for all $q\in$ NP are polynomially reducible to
+    $H$.
+\end{thm}
+
+In notation,
+\begin{gather*}
+    H\in NP \land \forall Q\in NP: Q\leq_P H\\
+\end{gather*}
+\end{document}

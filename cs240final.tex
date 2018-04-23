@@ -1,0 +1,321 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage{algorithmicx}
+\usepackage{algpseudocode}
+
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}
+\newtheorem{cor}{Corollory}
+\newtheorem{prop}{Proposition}
+
+
+\theoremstyle{definition}
+\newtheorem{eg}{Example}
+\newtheorem{rmk}{Remark}
+\newtheorem{defn}{Definition}
+
+\setlength{\parindent}{0cm}
+
+\begin{document}
+\section{Dictionary}
+
+\begin{defn}
+    A dictionary/associative array is a abstract data type with (key, value) pair with
+    operations
+    \begin{itemize}
+        \item Addition a pair
+        \item Removal of a pair
+        \item Modification of a existing pair
+        \item Lookup a value of a existing pair
+    \end{itemize}
+\end{defn}
+
+There are different implementation of this abstract data type such as
+\begin{itemize}
+    \item Tree including B-tree, AVL-tree, Red-Black-Tree
+    \item Hash Function
+    \item Direct Adressing
+\end{itemize}
+
+\subsection{Direct Addressing}
+If $\forall k: 0\leq k\leq M$, where $M\in\mathbb{N}$ then we can use an
+array $A[k]\leftarrow v$ to store the pair. Each operation is $\Theta(1)$, and
+the total storage is $\Theta(M)$.
+
+$Key = \{a_n\}^M_{n=0} \xrightarrow{A} Value)$
+
+\subsection{Hashing}
+For $k\in Any$, then define $h: Any\rightarrow \{0, ..., M\}$ to be a hash function.
+We can store the key in an Array.
+
+$Key = Any\xrightarrow{h}\{a_n\}^M_{n=0}\xrightarrow{A} (Key, Value)$
+
+The hash function is generally not injective. We get a collision when we want to
+insert a (key, value) pair into a bucket that is occupied.
+
+\begin{defn}
+    Load Factor: $\alpha = \frac{n}{M}$, where $n$ is the number pairs already stored,
+    and $M$ is the array size
+\end{defn}
+
+\subsubsection{Chaining}
+$Key = Any\xrightarrow{h}\{a_n\}^M_{n=0}\xrightarrow{A} List(Key, Value))$
+
+\subsubsection{Linear Probing}
+Hash Construction: $H \rightarrow H_L$\\
+Define: $h_D(k, i) = h_1(k) + i \bmod{M}$
+
+$Key = Any\times\mathbb{N}\xrightarrow{h_L}\{a_n\}^M_{n=0}\xrightarrow{A} (Key, Value)$
+
+It will through iterate $0, 1, ...$ until $(Key, Value)$ is found.
+
+\begin{eg}
+    $h_L(k, i) = (h(k) + i)$
+\end{eg}
+
+\subsubsection{Double Hashing}
+Hash Construction: $H_1\times H_2\rightarrow H_D$\\
+Define: $h_D(k, i) = h_1(k) + ih_2(x) \bmod{M}$
+
+$Key = Any\times\mathbb{N}\xrightarrow{h_D}\{a_n\}^M_{n=0}\xrightarrow{A} (Key, Value)$
+
+\subsubsection{Cuckoo Hashing}
+We can look at Cuckoo Hashing as a bipartite graph, $G = (U, V, E)$, where $U$ and $V$
+are array of size $M$. The occupied buckets in $U$ are $h_1(k)$, and $V$, $h_2(k)$
+for some $k$. The edges are ($h_1(k), h_2(k)$) for some $k$. Remember each slot can only
+have one element.
+
+\begin{algorithmic}[1]
+    \Function{CuckooHashing}{A, key, value}
+    \State pos = $h_1(k)$:
+    \While{A[pos] is not None}
+        \State A[pos], key = key, A[pos]
+        \If{$h_1(k)$ != pos}
+            \State pos = $h_1(k)$
+        \Else
+            \State pos = $h_2(k)$
+        \EndIf
+    \EndWhile
+    \State A[pos] = (key, value)
+    \EndFunction
+\end{algorithmic}
+
+\begin{thm}
+    The insertion of a key succeeds if the connected component containing
+    $key$ contains either no cycles or only one cycle. (pseudotree)
+\end{thm}
+
+\section{Range Searching}
+\subsection{QuadTree}
+\begin{algorithmic}
+    \State QuadTree:: Leaf Point $\mid$ Branch QuadTree QuadTree QuadTree QuadTree
+\end{algorithmic}
+
+\subsection{BST Range Search}
+Given $[a, b]$, and a BST, the problem is to find $\{v\in Nodes(T)\mid a <= v <= b\}$,
+then for a subtree, three cases may happen by the law of triochotomy:
+\begin{itemize}
+    \item If $b < root(T)$,
+        \begin{gather*}
+            \forall v\in Nodes(T_{right}): v \geq root(T)\\
+            \nexists v\in Nodes(T_{right}): v < root(T)\\
+            \nexists v\in Nodes(T_{right}): v < b
+        \end{gather*}
+        Therefore, no search to the left.
+    \item If $root(T) < a$
+        \begin{gather*}
+            \forall v\in Nodes(T_{left}): v \leq root(T)\\
+            \nexists v\in Nodes(T_{right}): v > root(T)\\
+            \nexists v\in Nodes(T_{right}): v > a
+        \end{gather*}
+        No search to left.
+    \item If $a \leq root(T) \leq b$, search left and right.
+\end{itemize}
+
+There are tree type of nodes
+\begin{itemize}
+    \item Boundary nodes: No constraints, or contrainst not dominating $a \leq v \leq b$
+    \item Inside nodes: There exists constraints dominating $[a,b]$,
+        the topmost is also called allocation node
+    \item Outside nodes: Nodes that are being pruned
+\end{itemize}
+
+\subsection{Range Tree}
+To perform a range query where $A = [a_{11}, a_{12}] \times ... \times [a_{n1}, a_{n2}]$,
+\begin{itemize}
+    \item Boundary node: since it's not dominating, we check node if in range
+    \item Allocation node: Dominating, construct a BST with all the points of the subtree
+        based on the next coordinates. Then do BST.
+\end{itemize}
+$T$ construct a binary based on $Node(T)$
+
+\subsection{Conclusion}
+Range Tree:
+\begin{itemize}
+    \item Fastest: $O(s + n(\log n)^d)$
+    \item Space: $O(n(\log n)^{d-1})$
+    \item Complicated insert/deletion
+\end{itemize}
+
+kd-Tree:
+\begin{itemize}
+    \item $O(s + n)$
+    \item Space: $O(n)$
+    \item Duplicate case to be taken care of
+\end{itemize}
+
+\section{String Matching}
+\subsection{Knuth-Morris-Pratt algorithm}
+Using DFA, go to the state where it has failed. There is the failure array and the DFA.
+
+State $k$ represents that the last $k$ elements are matching ($P[:k]$),
+we want to parse the next element $k+1$-th element ($P[k]$). If success, move on next
+state. If failure, jump to the state where most the suffix matches the current good suffix,
+and still try to parse the next character. (no parsing this stage)
+
+The main mapping is a prefix of $P$, of prefixes.
+
+\subsection{Boyer-Moore Algorithm}
+There are two main components to this algorithms:
+\begin{itemize}
+    \item Bad character rule: Shift until matches the character
+    \item Good suffix rule: Shift where the suffix matc
+\end{itemize}
+You have $P, T, k$, then for $P[k:]$ suffix, compare to $T$, we want to get the maximum
+number of matching suffix of this suffix, and bad character index. $P[k:][l:]$, and
+$P[l]$ where $l$ indicate the bad character index. Take the difference of $n-l$, it's
+the amount you have to shift. (proof later)
+
+
+$k = k+1$
+
+Good suffix same idea as KMP, then find the main mapping is suffix of suffix. The reverse
+of KMP, if failed then to KMP on the suffix with long with the suffix (weak suffix rule)
+
+\section{Encoding}
+Decoding: Greedy\\
+Encoding: Merge frequencies
+
+\subsection{RLE Encoding}
+Decoding: First Bit, determines $0,1,0,1,...$ or $1, 0, 1, 0,...$ alternation\\
+Number of zero is the image of $\log k$, so a mapping $\log k + 1$ gives us the length.
+
+\subsection{LZW Encoding}
+Encoding: Encode in a greedy way, upon failure, encoding, and add in dictionary\\
+Decoding: Decode while building, upon seeeing unknown character, use the
+the $previous + previous[0]$, and assign number to the dictionary
+
+\subsection{BWT Encoding}
+Idea: adjacent character maps to each other, then stable sort. to recover the values.
+
+
+
+\section{Appendix}
+\subsection{Median}
+    Median of a list of length $n$ and index starting at 1 is defined in statistics:
+    \begin{itemize}
+        \item If $n$ is even, Median = $\frac{a_{\frac{n}{2}} + a_{\frac{n+1}{2}}}{2}$
+        \item If $n$ is odd, Median = $a_{\frac{n+1}{2}}$
+    \end{itemize}
+    Note that $a_k$ means that
+    \begin{itemize}
+        \item There are $k-1$ elements before $k$-th index excluding itself. We can see $k$
+            as fence, and we can assign every left pole of a fence with the fence value.
+            We want to know the number of fences between two poles, so we do substract.
+        \item There are $(n+1) - (k+1) = n-k$ after $k$-th index excuding itself.
+            Same logic, we take the right pole of fence $n$ and $k$, and do substraction.
+    \end{itemize}
+    The intuitive sense of the median is to have same amount of elements before and after
+    $k$-th excluding $k$ itself. Thus, we want to find $k$ such that
+    \begin{gather*}
+        k-1 = n-k\\
+        k + k = n+1\\
+        2k = n+1
+    \end{gather*}
+    If $n$ is odd, then we want the element at index,
+    \begin{gather*}
+        k = \frac{n+1}{2}
+    \end{gather*}
+    If $n$ is even, then there is no good way of splitting, then we want to find two
+    adjacent elements where the number of elements before first elements is same
+    as the elements after second elements. Let $k$ be the index of first element.
+    \begin{gather*}
+        k-1 = (n+1)-((k+1)+1)\\
+        k-1 = n-k-1\\
+        k = \frac{n}{2}
+    \end{gather*}
+    If $k = \frac{n}{2}$, then $k-1 = n-k-1$ holds, therefore we have $k$-th and $k+1$-th
+    element, and we take the average of the to give a single number.
+
+\subsection{Binary Tree}
+One way to define a binary tree is as follows
+
+We can define operation as $root(T), subtrees(T), nodes(T)$
+
+\subsubsection{Binary Search Tree}
+    \begin{algorithmic}
+        \State BinarySearchTree:: Empty $\mid$ Value BinarySearchTree BinarySearchTree
+    \end{algorithmic}
+    A Binary search Tree is a Binary Tree with this addition property:
+    \begin{itemize}
+        \item $Empty$ is a Binary Search Tree
+        \item $T$ is a Binary Search Tree if
+            $T_{left}$ and $T_{right}$ are Binary Search Trees, and
+            \begin{gather*}
+                \forall v\in Nodes(T_{left}): v \leq root(T)\\
+                \forall v\in Nodes(T_{right}): v \geq root(T)
+            \end{gather*}
+    \end{itemize}
+
+\subsection{Interval}
+    Recall the law of trichotomy: Let $<$ be an order relation in $X$, then
+    \begin{align*}
+        \forall x, y\in X ((x < y) \lor (y > x) \lor (x = y))
+    \end{align*}
+
+    Given $[a, b]$ and $v$ where $a \leq b$, then
+    \begin{gather*}
+        (v < a) \lor (a\leq v\leq b) \lor (b > v)
+    \end{gather*}
+
+\subsection{Graph Theory}
+A graph can be described, and constructed based on
+\begin{itemize}
+    \item The edges
+    \item The nodes, and their adjacent nodes
+\end{itemize}
+As geometric shape can also be seen as such.
+
+\subsection{List}
+Here are some useful constructions of lists/strings of length $n$. The $k$-th index
+can be seen as a fence or a pole
+\begin{itemize}
+    \item $\{P[k]: k\in\{a_n\}^{n-1}_{i=0}\}$: list of characters
+    \item $\{P[k:]: k\in\{a_n\}^{n-1}_{i=0}\}$: list of suffixes
+    \item $\{P[:k]: k\in\{a_n\}^{n}_{i=1}\}$: list of prefixes
+    \item Map
+    \item Foldr
+\end{itemize}
+Notice slicing is defined as left pole. Here are different interpretation of the function
+\begin{itemize}
+    \item $P[:k]$: there are $k$ element in the prefix, the prefix before $k+1$-th element
+    \item $P[k]$: there are $k$ element before this $k+1$-th element
+    \item $P[k:]$: there are $k$ element before this suffix
+\end{itemize}
+
+\subsubsection{Shifting}
+Problem: We have fence $i$, fence $j$, we want to shift fence $i$ until $i$ reaches
+fence $j$. How many fence do we have to shift?\\
+$i + n$ adds $n$ poles between $i$-th pole and $i+n$-th pole. In other words,
+\begin{gather*}
+    \exists n: i + n = j\\
+    n = j - i
+\end{gather*}
+Affine map/Group action
+\end{document}

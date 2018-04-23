@@ -309,7 +309,7 @@ there are known finite bounds on $f(x)$ for $x\in S$.
 \end{eg}
 
 \begin{defn}
-    $P$ is the complexity class of problems in NP such that
+    $P$ is the complexity class of problems in $NP$ such that
     there exists a polynomial algorithm to solve them
 \end{defn}
 \begin{eg}
@@ -320,7 +320,7 @@ there are known finite bounds on $f(x)$ for $x\in S$.
 \end{eg}
 
 \begin{defn}
-    Give $H,Q\in NP$, $H$ is polynomially reducible to $Q$ if all instance of $H'$
+    Give $H,Q\in NP$, $H$ is polynomially reducible to $Q$ if all instance of $H$
     can be converted into an instance of $Q$ in polynomial time.
 \end{defn}
 
@@ -348,7 +348,7 @@ as
 \end{align*}
 
 \begin{defn}
-    A problem $H\in NP$ is $NP-complete$ if all $q\in Np$ are polynomially
+    A problem $H\in NP$ is $NP-complete$ if all $q\in NP$ are polynomially
     reducible to $H$.
 \end{defn}
 
@@ -1349,7 +1349,7 @@ Remark: $E(C) = C \cup \{j: a_j \geq a^{max}\}$ where $a^{max} = max_{j\in C}a_j
     \begin{gather*}
         \alpha_{t+1}\leq\beta-z_{t+1}\leq\beta-\sum_{j=1}^t\alpha_jx_j
     \end{gather*}
-    We find the least upper bound of $\{x: \beta-\sum^t_{j=1}\alpha_jx_j\}$ to find the
+    We want the greatest lower bound of $\{x: \beta-\sum^t_{j=1}\alpha_jx_j\}$ to find the
     maximum $\alpha_{t+1}$ can take. $\beta$ remain unchanged through iterations.
 \end{rmk}
 
@@ -1401,13 +1401,15 @@ If the minimum is $<1$, then $z$ gives a violated cover.
         z\in\mathbb{B}^7
     \end{gather*}
 
+\begin{comment}
     To solve this LP, we can convert it to knapsack problem.
     \begin{gather*}
         y_j = 1 - z_j\\
         \text{max } \frac{2}{3}y_3 + y_4 + y_5 + y_6 + y_7\\
-        \text{s.t. } 11y_1 + 6y_2 + 6y_3 + 5y_4 + 5y_5 + 4y_6 + 1y_7 \leq 18
+        \text{s.t. } 11y_1 + 6y_2 + 6y_3 + 5y_4 + 5y_5 + 4y_6 + 1y_7 \leq 19
     \end{gather*}
     Solve with DP, it yields $y* =[ 1 1 0 0 0 0 0]^T$, $z* = [0 0 1 1 1 1 1]$,
+\end{comment}
     Cover = $\{3, 4, 5, 6, 7\}$
 \end{eg}
 
